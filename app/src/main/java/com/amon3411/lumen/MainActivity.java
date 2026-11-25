@@ -50,7 +50,11 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (web.canGoBack()) web.goBack();
-        else super.onBackPressed();
+        // Let Lumen close an open panel first; otherwise leave the app
+        web.evaluateJavascript("window.lumenBack ? lumenBack() : false", r -> {
+            if ("true".equals(r)) return;
+            if (web.canGoBack()) web.goBack();
+            else finish();
+        });
     }
 }
