@@ -1,9 +1,10 @@
-**Lumen** — smart home control for Home Assistant, as an Android app.
+**Lumen Home** — one app for your Home Assistant smart home on Android.
 
-**New in 1.1.0: Media tab**
-- **Sonos speakers:** see what's playing with artwork, play/pause, skip, volume, mute and your Sonos favorites.
-- **TVs:** power, volume and a full remote — arrow pad, OK, Back, Home, play/pause — plus one-tap YouTube, Netflix, Prime Video and Disney+.
+**New in 1.2.0**
+- **Renamed to Lumen Home.** Your settings and connection carry over.
+- **Cameras tab:** every camera in Home Assistant as a live-updating grid; tap one for a full live view (falls back to fast snapshots).
+- **Network tab:** whether your internet is up, live download and upload speed through your Deco, and who's home.
 
-**Also**
-- Swipe down or press Back to close any panel.
-- Lights: Google Home–style tiles, rooms, light groups, scenes, schedules and themes.
+**Also in the app**
+- **Media:** Sonos playback, volume and favorites; TV power, volume, remote pad and app shortcuts.
+- **Lights:** Google Home–style tiles, rooms, light groups, scenes, schedules and themes.

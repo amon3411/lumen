@@ -1,6 +1,6 @@
-# Lumen
+# Lumen Home
 
-Smart home control for Home Assistant (lights, Sonos speakers and TVs), packaged as an Android app.
+Smart home control for Home Assistant (lights, Sonos speakers, TVs, cameras and network), packaged as an Android app.
 
 ## Install
 Add `https://github.com/amon3411/lumen` in [Obtainium](https://github.com/ImranR98/Obtainium) and tap **Install**. Updates show up in Obtainium automatically.

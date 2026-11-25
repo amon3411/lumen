@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="lumen-icon-180.png">
 <link rel="manifest" href="lumen.webmanifest">
 <meta name="theme-color" content="#131316">
-<title>Lumen — Smart Home</title>
+<title>Lumen Home</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--text:#eef0f4;--muted:#8b92a1;--accent:#ffc857;--line:#2a2f3a;--ok:#7bd389;--bad:#ff6b6b}
@@ -262,6 +262,16 @@
   .pad .mbtn{width:64px;height:64px}
   .pad .ok{background:var(--accent);color:#1a1a1a;font-weight:700}
   .apps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .camgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .cam{position:relative;border-radius:calc(var(--rad) * .75);overflow:hidden;background:var(--card2);aspect-ratio:16/9;cursor:pointer;border:1px solid var(--line)}
+  .cam img{width:100%;height:100%;object-fit:cover;display:block}
+  .cam b{position:absolute;left:0;right:0;bottom:0;padding:18px 10px 8px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+  .cam .dot{position:absolute;top:8px;left:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:999px}
+  #camSh img{width:100%;border-radius:12px;background:#000;display:block;min-height:120px}
+  .netgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .netgrid .mcard{margin:0}.netgrid .mcard b{font-size:22px;display:block;margin-top:4px}.netgrid .mcard span{font-size:12px;color:var(--muted)}
+  .who{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}
+  .bnav i{width:48px}.bnav button{font-size:11px}
   .mempty{color:var(--muted);font-size:14px;text-align:center;padding:30px 10px}
 </style>
 </head>
@@ -303,6 +313,16 @@
 </form>
 </section>
 
+<section id="vCameras" hidden>
+<h2>Cameras</h2>
+<div id="camList"></div>
+</section>
+
+<section id="vNetwork" hidden>
+<h2>Internet</h2>
+<div id="netList"></div>
+</section>
+
 <section id="vMedia" hidden>
 <h2>Speakers &amp; TVs</h2>
 <div id="mediaList"></div>
@@ -311,8 +331,10 @@
 <p class="note" id="note"></p>
 
 <nav class="bnav">
-  <button data-view="devices"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></i>Devices</button>
+  <button data-view="devices"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></i>Lights</button>
   <button data-view="media"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></i>Media</button>
+  <button data-view="cameras"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 7 16 12l7 5z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></i>Cameras</button>
+  <button data-view="network"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0M12 20h.01"/></svg></i>Network</button>
   <button data-view="routines"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg></i>Routines</button>
   <button id="dispBtn"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></i>Settings</button>
 </nav>
@@ -461,6 +483,13 @@
     <button class="ghost" data-app="https://app.primevideo.com">Prime Video</button>
     <button class="ghost" data-app="https://www.disneyplus.com">Disney+</button>
   </div>
+</div>
+
+<div class="sheet" id="camSh">
+  <div class="grab"></div>
+  <h3><span id="camName">Camera</span><span class="meta" id="camLive">Live</span></h3>
+  <img id="camImg" alt="">
+  <p class="hint" id="camHint" style="margin-top:10px">If live view doesn't start, the picture refreshes every few seconds instead.</p>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -684,7 +713,7 @@ function render(){
   const home=S.look.tiles==='home';
   document.body.className=`size-${Dp.size} layout-${Dp.layout}${Dp.showBrand?'':' hide-brand'} tiles-${home?'home':'cards'} brand-${S.look.preset||'material'}`;
   $('tileHint').hidden=!home;
-  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';$('vMedia').hidden=S.view!=='media';renderMedia();
+  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';$('vMedia').hidden=S.view!=='media';renderMedia();$('vCameras').hidden=S.view!=='cameras';$('vNetwork').hidden=S.view!=='network';renderCams();renderNet();
   document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.view));
   $('statsBox').hidden=!Dp.showStats;
   const card=l=>{const c=lc(l);
@@ -752,7 +781,7 @@ function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
 
 // ---------- light sheet ----------
 function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
-function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
+function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
 function renderSheet(){
   const l=cur;$('shName').textContent=l.name;
   const pf=!l.isFx&&fxOf(l.id);
@@ -928,6 +957,55 @@ $('tvSh').addEventListener('click',e=>{
     voldown:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_DOWN'},'remote'):mpCall('volume_down',id),
     mute:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_MUTE'},'remote'):mpCall('volume_mute',id,{is_volume_muted:!d.s.attributes.is_volume_muted})})[b.dataset.rc]?.();
 });
+// ---------- Cameras ----------
+var CAM={t:null,live:null};
+const base=()=>S.ha.url.replace(/\/$/,'');
+const camStates=()=>(HA.all||[]).filter(s=>s.entity_id.startsWith('camera.'));
+const camSnap=c=>`${base()}/api/camera_proxy/${c.entity_id}?token=${encodeURIComponent(c.attributes.access_token||'')}&t=${Date.now()}`;
+function renderCams(){
+  if(!CAM)return;const box=$('camList');if(!box||S.view!=='cameras'){clearInterval(CAM.t);CAM.t=null;return}
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your cameras.</p>';return}
+  const cs=camStates();
+  if(!cs.length){box.innerHTML='<p class="mempty">No cameras in Home Assistant yet.<br><br>Your Ring cameras show up here once ring-mqtt is set up, and your Yi Dome once it has the yi-hack firmware and is added to Home Assistant.</p>';return}
+  const have=[...box.querySelectorAll('[data-cam]')].map(e=>e.dataset.cam).join();
+  if(have!==cs.map(c=>c.entity_id).join()){
+    box.innerHTML='<div class="camgrid">'+cs.map(c=>`<div class="cam" data-cam="${esc(c.entity_id)}">${c.state==='unavailable'?'':`<img alt="" src="${esc(camSnap(c))}">`}<span class="dot">${c.state==='unavailable'?'Offline':c.state==='recording'?'● Recording':c.state==='streaming'?'● Live':'Idle'}</span><b>${esc(c.attributes.friendly_name||c.entity_id)}</b></div>`).join('')+'</div>';
+  }
+  if(!CAM.t)CAM.t=setInterval(()=>{if(S.view!=='cameras'){clearInterval(CAM.t);CAM.t=null;return}
+    camStates().forEach(c=>{const img=box.querySelector(`[data-cam="${CSS.escape(c.entity_id)}"] img`);if(img&&!document.hidden)img.src=camSnap(c)})},5000);
+}
+$('camList').addEventListener('click',e=>{
+  const t=e.target.closest('[data-cam]');if(!t)return;const c=camStates().find(x=>x.entity_id===t.dataset.cam);if(!c)return;
+  CAM.live=c.entity_id;$('camName').textContent=c.attributes.friendly_name||c.entity_id;$('camLive').textContent='Live';
+  const img=$('camImg');img.onerror=()=>{if(CAM.live!==c.entity_id)return;$('camLive').textContent='Snapshot';img.onerror=null;
+    const tick=()=>{if(CAM.live!==c.entity_id)return;img.src=camSnap(c);setTimeout(tick,2000)};tick()};
+  img.src=`${base()}/api/camera_proxy_stream/${c.entity_id}?token=${encodeURIComponent(c.attributes.access_token||'')}`;
+  $('camSh').classList.add('open');$('backdrop').classList.add('open');
+});
+new MutationObserver(()=>{if(!$('camSh').classList.contains('open')&&CAM.live){CAM.live=null;$('camImg').removeAttribute('src')}}).observe($('camSh'),{attributes:true,attributeFilter:['class']});
+
+// ---------- Network ----------
+function fmtRate(v,u){let k=+v;if(isNaN(k))return '—';u=u||'KiB/s';
+  const bits={'KiB/s':8*1024,'kB/s':8000,'B/s':8,'MiB/s':8*1048576,'MB/s':8e6,'bit/s':1,'kbit/s':1e3,'Mbit/s':1e6}[u];
+  if(!bits)return k.toFixed(1)+' '+u;const b=k*bits;return b>=1e6?(b/1e6).toFixed(1)+' Mbps':(b/1e3).toFixed(0)+' kbps'}
+function renderNet(){
+  const box=$('netList');if(!box||S.view!=='network')return;
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your network.</p>';return}
+  const st=HA.all||[],f=re=>st.find(s=>re.test(s.entity_id));
+  const dl=f(/^sensor\..*download_speed$/),ul=f(/^sensor\..*upload_speed$/),ip=f(/^sensor\..*external_ip$/),wan=f(/^(binary_)?sensor\..*wan_status$/);
+  const people=st.filter(s=>s.entity_id.startsWith('device_tracker.')||s.entity_id.startsWith('person.'));
+  if(!dl&&!ul&&!ip&&!people.length){box.innerHTML='<p class="mempty">No network info in Home Assistant yet.</p>';return}
+  const router=(dl||ul||ip)?.attributes.friendly_name?.split(' ')[0]||'Router';
+  const online=wan?(/on|connected/i.test(wan.state)):(ip&&ip.state!=='unavailable');
+  box.innerHTML=`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online?'Online':'Offline'}${ip?' · IP '+esc(ip.state):''}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online?'✓':'!'}</span></div>
+  <div class="netgrid">
+    <div class="mcard"><span>Download now</span><b>${dl?fmtRate(dl.state,dl.attributes.unit_of_measurement):'—'}</b></div>
+    <div class="mcard"><span>Upload now</span><b>${ul?fmtRate(ul.state,ul.attributes.unit_of_measurement):'—'}</b></div>
+  </div>
+  <p class="hint" style="margin-top:8px">Live traffic through your Deco, updated every few seconds.</p>
+  ${people.length?'<h2>Who\'s home</h2>'+people.map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':esc(p.state)}</span></div>`).join(''):''}`;
+}
+
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
