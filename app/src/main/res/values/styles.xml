@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Lumen" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#131316</item>
+        <item name="android:statusBarColor">#131316</item>
+        <item name="android:navigationBarColor">#131316</item>
+    </style>
+</resources>

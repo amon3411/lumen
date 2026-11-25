@@ -1,0 +1,13 @@
+{
+  "name": "Lumen",
+  "short_name": "Lumen",
+  "start_url": "lumen.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#131316",
+  "theme_color": "#131316",
+  "icons": [
+    {"src": "lumen-icon-180.png", "sizes": "180x180", "type": "image/png"},
+    {"src": "lumen-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

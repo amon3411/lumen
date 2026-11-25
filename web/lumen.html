@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lumen">
+<link rel="apple-touch-icon" href="lumen-icon-180.png">
+<link rel="icon" type="image/png" href="lumen-icon-180.png">
+<link rel="manifest" href="lumen.webmanifest">
+<meta name="theme-color" content="#131316">
+<title>Lumen — Smart Light Control</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--text:#eef0f4;--muted:#8b92a1;--accent:#ffc857;--line:#2a2f3a;--ok:#7bd389;--bad:#ff6b6b}
+  html[data-theme=dark]{--bg:#131316;--card:#1e1f23;--card2:#2a2b30;--text:#e4e3e8;--muted:#a3a4ab;--line:#35363c}
+  html[data-theme=light]{--bg:#f2f3f8;--card:#ffffff;--card2:#e8e9f0;--text:#1b1b1f;--muted:#5d5e66;--line:#d6d7df;--ok:#1e8e3e;--bad:#d93025}
+  html[data-theme=black]{--bg:#000;--card:#101113;--card2:#1b1c1f;--text:#f1f1f3;--muted:#96979e;--line:#26272b}
+  html[data-theme=ocean]{--bg:#0b1622;--card:#12212f;--card2:#1a2d3e;--text:#e6f0f7;--muted:#8ea6b8;--line:#23384b}
+  html[data-theme=forest]{--bg:#101712;--card:#18221b;--card2:#223026;--text:#e5efe6;--muted:#93a796;--line:#2c3d31}
+  html[data-theme=glass]{--bg:#2a1d2e;--card:rgba(40,28,44,.82);--card2:rgba(255,255,255,.14);--text:#ffffff;--muted:rgba(255,255,255,.72);--line:rgba(255,255,255,.2)}
+  html[data-theme=glass] body{background:linear-gradient(165deg,#4b2f63 0%,#b45d62 55%,#e6a15a 100%) fixed}
+  html[data-theme=glass] .sheet,html[data-theme=glass] .bnav{backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+  html[data-theme=hub]{--bg:#f4f5f7;--card:#ffffff;--card2:#eceef2;--text:#252629;--muted:#6b6f77;--line:#e1e3e8;--ok:#1e8e3e;--bad:#d93025}
+  html[data-theme=echo]{--bg:#0d1a28;--card:#14263a;--card2:#1c3249;--text:#eaf3fb;--muted:#91a6ba;--line:#243b52}
+  html{--rad:24px} html.corners-square{--rad:10px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Google Sans','Figtree','DM Sans',system-ui,sans-serif;transition:background .3s;background:var(--bg);color:var(--text);min-height:100vh;padding:calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;max-width:760px;margin:0 auto}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px}
+  h1{font-size:28px;font-weight:500;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .hbtns{display:flex;gap:8px;align-items:center}
+  .master,.gear{background:var(--card);border:1px solid var(--line);color:var(--text);padding:9px 14px;border-radius:999px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500}
+  .gear{padding:8px 10px;line-height:0}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:4px}
+  .pill i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .pill.live i{background:var(--ok)} .pill.err i{background:var(--bad)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 0 10px;font-weight:500}
+  .scenes{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .scene{flex:0 0 auto;padding:11px 16px;border-radius:999px;background:var(--card);border:1px solid var(--line);cursor:pointer;font-family:inherit;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px}
+  .scene.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--card))}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:18px}
+  .tab{flex:none}
+  .tab{padding:7px 13px;border-radius:999px;background:transparent;border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer}
+  .tab.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}
+  .light{background:var(--card);border:1px solid var(--line);border-radius:calc(var(--rad) * .75);padding:14px;cursor:pointer;position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"bulb . sw" "info info info";align-items:start}
+  .light.na{opacity:.45}
+  .light .glow{position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none}
+  .light.on .glow{opacity:1}
+  .light>.sw{grid-area:sw;position:relative}
+  .bulb{grid-area:bulb;position:relative;color:var(--muted);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--card2);transition:all .3s}
+  .bulb svg{width:18px;height:18px}
+  .light.on .bulb{box-shadow:0 0 18px var(--c);color:#111}
+  .info{grid-area:info;position:relative;margin-top:12px;min-width:0}
+  .name{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{color:var(--muted);font-size:12px;margin-top:2px;position:relative}
+  .brand{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:2px 6px;border-radius:6px;background:var(--card2);color:var(--muted);margin-top:8px;position:relative}
+  /* sizes */
+  .size-s .grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+  .size-s .light{padding:10px;border-radius:14px}
+  .size-s .bulb{width:28px;height:28px} .size-s .bulb svg{width:14px;height:14px}
+  .size-s .info{margin-top:8px} .size-s .name{font-size:13px} .size-s .brand{display:none}
+  .size-l .grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .size-l .light{padding:18px;border-radius:22px}
+  .size-l .bulb{width:56px;height:56px} .size-l .bulb svg{width:26px;height:26px}
+  .size-l .info{margin-top:16px} .size-l .name{font-size:18px} .size-l .meta{font-size:13px}
+  /* list layout */
+  .layout-list .grid{grid-template-columns:1fr!important;gap:8px}
+  .layout-list .light{grid-template-areas:"bulb info sw";align-items:center;column-gap:12px}
+  .layout-list .info{margin-top:0}
+  .layout-list .brand{margin:0 0 0 8px;vertical-align:1px}
+  .layout-list .meta{display:inline}
+  .layout-list .name{display:block}
+  .hide-brand .brand{display:none!important}
+  /* groups */
+  .gsec{margin-top:16px}
+  .ghead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .ghead b{font-size:15px;font-weight:500} .ghead small{color:var(--muted);margin-left:6px;font-size:12px}
+  .empty{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:14px}
+  .seg{display:flex;background:var(--card2);border-radius:12px;padding:4px}
+  .seg button{flex:1;padding:8px 4px;border:none;background:none;color:var(--muted);font-family:inherit;border-radius:9px;cursor:pointer;font-size:13px}
+  .seg button.active{background:var(--card);color:var(--text)}
+  .toggleRow{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:14px}
+  .roomRow{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .roomRow input{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:10px;font-family:inherit;font-size:14px;min-width:0}
+  .roomRow small{color:var(--muted);font-size:12px;width:52px;text-align:right}
+  .iconbtn{background:var(--card2);border:1px solid var(--line);color:var(--muted);width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;flex:none}
+  .item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:12px 14px;border-radius:12px;font-family:inherit;font-size:14px;cursor:pointer;margin-bottom:8px}
+  .item small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .item .go{margin-left:auto;color:var(--muted)}
+  .badge{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);flex:none;font-weight:700;font-size:14px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .qr{display:block;max-width:220px;margin:14px auto;background:#fff;padding:8px;border-radius:12px}
+  .fdesc{font-size:13px;color:var(--muted);line-height:1.5;margin-top:8px;white-space:pre-line}
+  .fdesc a{color:var(--accent)}
+  .chk{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px}
+  .chk input{width:18px;height:18px;accent-color:var(--accent)}
+  .form .chk input{width:18px;flex:none;padding:0}
+  .form .chk{font-size:13px;color:var(--text)}
+  .btnrow{display:flex;gap:8px;margin-top:18px} .btnrow>*{flex:1}
+  .fxcount{position:absolute;left:44px;top:10px;font-size:11px;font-weight:700;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:1px 6px;color:var(--muted)}
+  .size-s .fxcount{left:32px;top:6px} .size-l .fxcount{left:64px;top:14px}
+  .layout-list .fxcount{position:static;grid-area:bulb;align-self:end;justify-self:end;margin:0 -6px -6px 0;padding:0 5px}
+  .mrow{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+  .mrow .mdot{width:14px;height:14px;border-radius:50%;background:#353a46;flex:none}
+  .mrow span{flex:1;font-size:14px} .mrow small{color:var(--muted);font-size:12px}
+  .pick{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
+  .pick input{width:18px;height:18px;accent-color:var(--accent)} .pick small{color:var(--muted);margin-left:auto;font-size:12px}
+  .pick.dis{opacity:.4}
+  /* Home-style tiles */
+  .tiles-home .grid{grid-template-columns:repeat(auto-fill,minmax(156px,1fr));gap:10px}
+  .tiles-home .light{display:flex;align-items:center;gap:12px;min-height:72px;padding:12px 8px 12px 14px;border:none;background:var(--card2);border-radius:var(--rad);touch-action:pan-y;user-select:none;-webkit-user-select:none;transition:background .25s}
+  .tiles-home .light .glow{display:none}
+  .tiles-home .light.on{background:linear-gradient(90deg,var(--fill) 0 var(--b),color-mix(in srgb,var(--fill) 45%,var(--card2)) var(--b));color:var(--ink)}
+  .tiles-home .light.on .meta,.tiles-home .light.on .brand{color:var(--ink);opacity:.72}
+  .tiles-home .light.on .brand{background:rgba(0,0,0,.08)}
+  .tiles-home .bulb{width:40px;height:40px;flex:none;background:color-mix(in srgb,var(--text) 9%,transparent);box-shadow:none!important}
+  .tiles-home .light.on .bulb{background:rgba(0,0,0,.1)!important;color:var(--ink)}
+  .tiles-home .info{margin:0;flex:1}
+  .tiles-home .brand{margin-top:4px}
+  .chev{background:none;border:none;color:inherit;opacity:.55;font-size:24px;line-height:1;padding:6px 4px;cursor:pointer;flex:none;font-family:inherit}
+  .tiles-home .fxcount{left:40px;top:6px}
+  .tiles-home.size-s .grid{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+  .tiles-home.size-s .light{min-height:56px;padding:8px 4px 8px 10px;gap:8px} .tiles-home.size-s .bulb{width:30px;height:30px}
+  .tiles-home.size-l .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .tiles-home.size-l .light{min-height:96px;padding:16px 10px 16px 18px} .tiles-home.size-l .bulb{width:52px;height:52px}
+  .tiles-home.size-l .fxcount{left:54px;top:10px}
+  .tiles-home.layout-list .light{display:flex}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
+  /* ---- layout themes ---- */
+  .gsec .ghead{transition:background .3s}
+  /* Glass: frosted square tiles, icon on top */
+  .tiles-home.brand-glass .grid,.tiles-home.brand-hub .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .tiles-home.brand-glass .light,.tiles-home.brand-hub .light{flex-direction:column;align-items:flex-start;justify-content:space-between;min-height:118px;padding:14px;gap:10px}
+  .tiles-home.brand-glass .chev,.tiles-home.brand-hub .chev{position:absolute;top:8px;right:6px}
+  .tiles-home.brand-glass .info,.tiles-home.brand-hub .info{flex:none;width:100%}
+  .tiles-home.brand-glass.layout-list .light,.tiles-home.brand-hub.layout-list .light{flex-direction:row;align-items:center;min-height:64px}
+  .tiles-home.brand-glass.layout-list .chev,.tiles-home.brand-hub.layout-list .chev{position:static}
+  .tiles-home.brand-glass .light{background:rgba(255,255,255,.16);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:calc(var(--rad) * .75)}
+  .tiles-home.brand-glass .light.on{background:rgba(255,255,255,.94);color:#1c1c1e}
+  .tiles-home.brand-glass .light.on .meta,.tiles-home.brand-glass .light.on .brand{color:#1c1c1e;opacity:.6}
+  .tiles-home.brand-glass .bulb{background:rgba(255,255,255,.18)!important;color:#fff}
+  .tiles-home.brand-glass .light.on .bulb{background:var(--c)!important;color:#1c1c1e}
+  .tiles-home.brand-glass .ghead b{font-size:20px;font-weight:600}
+  /* Hub: clean white cards with a brightness bar */
+  .tiles-home.brand-hub .light{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.04);border-radius:calc(var(--rad) * .7);padding-bottom:20px}
+  .tiles-home.brand-hub .light.on{background:var(--card);color:var(--text)}
+  .tiles-home.brand-hub .light.on .meta{color:var(--accent);opacity:1;font-weight:600}
+  .tiles-home.brand-hub .light.on .brand{color:var(--muted);opacity:1;background:var(--card2)}
+  .tiles-home.brand-hub .light.on .bulb{background:var(--accent)!important;color:#fff}
+  .tiles-home.brand-hub .light.on::after{content:'';position:absolute;left:14px;right:14px;bottom:9px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--accent) var(--b),var(--card2) var(--b))}
+  .tiles-home.brand-hub .scene,.tiles-home.brand-hub .stat{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  /* Bridge: rooms as color-gradient cards, lights as colored rows */
+  .tiles-home.brand-bridge .ghead{background:var(--grad,var(--card2));padding:16px 14px 16px 18px;border-radius:calc(var(--rad) * .75);color:#fff}
+  .tiles-home.brand-bridge .ghead b{font-size:18px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+  .tiles-home.brand-bridge .ghead small{color:rgba(255,255,255,.8)}
+  .tiles-home.brand-bridge .light{border-radius:calc(var(--rad) * .6)}
+  .tiles-home.brand-bridge .light.on{background:linear-gradient(90deg,var(--fill),color-mix(in srgb,var(--fill) 70%,#000));padding-bottom:18px}
+  .tiles-home.brand-bridge .light.on::after{content:'';position:absolute;left:14px;right:14px;bottom:7px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--ink) var(--b),color-mix(in srgb,var(--ink) 25%,transparent) var(--b));opacity:.7}
+  /* Echo: navy list rows with a glowing edge */
+  .tiles-home.brand-echo .light{background:var(--card);border-radius:calc(var(--rad) * .8);min-height:64px}
+  .tiles-home.brand-echo .light.on{background:var(--card2);color:var(--text);box-shadow:inset 4px 0 0 var(--accent)}
+  .tiles-home.brand-echo .light.on .meta{color:var(--accent);opacity:1}
+  .tiles-home.brand-echo .light.on .brand{color:var(--muted);opacity:1}
+  .tiles-home.brand-echo .light.on .bulb{background:var(--accent)!important;color:#0d1a28}
+  .tiles-home.brand-echo h1{font-weight:700}
+  .presets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .presets button{background:var(--card2);border:2px solid transparent;border-radius:14px;padding:8px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left}
+  .presets button.active{border-color:var(--accent)}
+  .presets b{font-size:13px;font-weight:600;display:block} .presets small{font-size:11px;color:var(--muted);display:block;margin-top:2px;line-height:1.3}
+  .presets .pv{display:flex;gap:3px;height:38px;padding:5px;border-radius:9px;margin-bottom:6px}
+  .presets .pv span{flex:1;border-radius:5px}
+  /* bottom nav */
+  .bnav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;gap:4px;padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
+  .bnav button{flex:1;max-width:140px;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+  .bnav i{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;transition:background .2s}
+  .bnav button.active{color:var(--text)} .bnav button.active i{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+  /* appearance controls */
+  .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .themes button{background:var(--card2);border:2px solid transparent;border-radius:14px;padding:8px;color:var(--text);font-family:inherit;font-size:12px;cursor:pointer;text-align:left}
+  .themes button.active{border-color:var(--accent)}
+  .themes .pv{display:flex;height:34px;border-radius:9px;overflow:hidden;margin-bottom:6px;border:1px solid var(--line)}
+  .themes .pv span{flex:1}
+  .accents{display:flex;gap:10px;flex-wrap:wrap}
+  .accents button{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;box-shadow:0 0 0 1px var(--line)}
+  .accents button.active{border-color:var(--text)}
+  .sec{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 0 4px;font-weight:500}
+  .ebig{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .ebig div{background:var(--card2);border-radius:14px;padding:12px}
+  .ebig b{display:block;font-size:20px;font-weight:600}
+  .ebig span{font-size:11px;color:var(--muted);line-height:1.3;display:block;margin-top:2px}
+  #eChart{margin-top:16px}
+  #eChart svg{width:100%;height:auto;display:block}
+  .erow{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
+  .erow small{color:var(--muted)}
+  .newlight{outline:2px solid var(--accent);outline-offset:2px}
+  .sheet select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px}
+  .sw{width:40px;height:24px;border-radius:999px;background:color-mix(in srgb,var(--text) 22%,var(--card2));position:relative;transition:background .2s;flex:none;border:none;cursor:pointer}
+  .sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
+  .sw.on{background:var(--accent)}
+  .sw.on::after{transform:translateX(16px)}
+  .stats{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+  .stat{flex:none;display:flex;align-items:baseline;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 14px}
+  .stat b{font-size:15px;font-weight:600}
+  .stat span{font-size:13px;color:var(--muted)}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s}
+  .backdrop.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;padding:20px 20px calc(32px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);border:1px solid var(--line);max-height:90vh;overflow:auto}
+  .sheet.open{transform:none}
+  .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:-6px auto 14px}
+  .sheet h3{font-size:20px;display:flex;justify-content:space-between;align-items:center}
+  label{display:block;font-size:13px;color:var(--muted);margin:18px 0 8px}
+  label output{float:right;color:var(--text)}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:28px;border-radius:14px;background:var(--card2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid var(--bg);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--bg);cursor:pointer}
+  #bri{background:linear-gradient(90deg,#222,var(--c,#ffc857))}
+  #temp{background:linear-gradient(90deg,#ff9a3c,#fff4e0,#cfe3ff)}
+  .wheelWrap{position:relative;width:240px;height:240px;margin:4px auto 0;touch-action:none}
+  #wheel{width:240px;height:240px;border-radius:50%;cursor:crosshair;display:block;box-shadow:0 0 0 1px var(--line)}
+  #marker{position:absolute;width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.5);transform:translate(-50%,-50%);pointer-events:none}
+  .hexRow{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted)}
+  .hexRow span{width:16px;height:16px;border-radius:50%}
+  .mode{display:flex;background:var(--card2);border-radius:12px;padding:4px;margin-top:16px}
+  .mode button{flex:1;padding:8px;border:none;background:none;color:var(--muted);font-family:inherit;border-radius:9px;cursor:pointer}
+  .mode button.active{background:var(--card);color:var(--text)}
+  .sched{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .sched small{color:var(--muted);display:block;font-size:12px}
+  .addbtn{width:100%;padding:12px;border-radius:14px;border:1px dashed var(--line);background:none;color:var(--muted);font-family:inherit;cursor:pointer}
+  .form{display:grid;gap:8px;margin-top:8px}
+  .form input,.form select{background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px;width:100%}
+  .primary{background:var(--accent);color:#1a1a1a;border:none;padding:11px;border-radius:10px;font-weight:700;font-family:inherit;cursor:pointer}
+  .ghost{background:none;border:1px solid var(--line);color:var(--text);padding:11px;border-radius:10px;font-family:inherit;cursor:pointer}
+  .x{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer}
+  .toast{position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(140px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;transition:transform .3s;z-index:9}
+  .toast.show{transform:translateX(-50%)}
+  .note{font-size:12px;color:var(--muted);margin-top:26px;text-align:center}
+  .help{font-size:13px;color:var(--muted);line-height:1.5;margin-top:14px}
+  .help ol{padding-left:18px;margin-top:6px} .help li{margin-bottom:4px} .help b{color:var(--text);font-weight:500}
+  .msg{font-size:13px;margin-top:10px;min-height:18px}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1 id="homeName">Home</h1><div class="sub" id="summary"></div><div class="pill" id="pill"><i></i><span>Demo mode</span></div></div>
+  <div class="hbtns">
+    <button class="master" id="masterBtn">All off</button>
+    <button class="gear" id="addTop" aria-label="Add light"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="gear" id="gearBtn" aria-label="Connections"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
+  </div>
+</header>
+
+<div class="stats" id="statsBox">
+  <div class="stat"><b id="sOn">0</b><span>lights on</span></div>
+  <div class="stat" data-energy style="cursor:pointer"><b id="sDay">—</b><span>avg / day</span></div>
+  <div class="stat" data-energy style="cursor:pointer"><b id="sW">0 W</b><span>using now</span></div>
+  <div class="stat"><b id="sAvg">0%</b><span>avg brightness</span></div>
+</div>
+
+<section id="vDevices">
+<h2>Scenes</h2>
+<div class="scenes" id="scenes"></div>
+<div class="tabs" id="tabs"></div>
+<div id="grid"></div>
+<p class="hint" id="tileHint">Tap a tile to switch it · slide sideways to dim · › for more</p>
+<button class="addbtn" id="addLightBtn" style="margin-top:12px">+ Add light</button>
+</section>
+
+<section id="vRoutines" hidden>
+<h2>Schedules</h2>
+<div id="schedList"></div>
+<button class="addbtn" id="addSched">+ Add schedule</button>
+<form class="form" id="schedForm" hidden>
+  <input type="time" id="fTime" value="07:00" required>
+  <select id="fRoom"></select>
+  <select id="fAction"><option value="on">Turn on</option><option value="off">Turn off</option><option value="Relax">Scene: Relax</option><option value="Focus">Scene: Focus</option><option value="Nightlight">Scene: Nightlight</option></select>
+  <button class="primary">Save schedule</button>
+</form>
+</section>
+
+<p class="note" id="note"></p>
+
+<nav class="bnav">
+  <button data-view="devices"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></i>Devices</button>
+  <button data-view="routines"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg></i>Routines</button>
+  <button id="dispBtn"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></i>Settings</button>
+</nav>
+
+<div class="backdrop" id="backdrop"></div>
+
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h3><span id="shName"></span><button class="sw" id="shSw" aria-label="Toggle"></button></h3>
+  <div class="meta" id="shRoom"></div>
+  <label>Room</label><select id="shRoomSel"></select>
+  <label><span id="shWLbl">Bulb wattage</span> <output>for power estimates</output></label><input id="shW" class="finput" type="number" min="1" max="300" step="0.5" style="width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px">
+  <div id="briBox"><label>Brightness <output id="briOut"></output></label><input type="range" id="bri" min="1" max="100"></div>
+  <div class="mode" id="modeBox"><button data-m="white">White</button><button data-m="color">Color</button></div>
+  <div id="whiteBox"><label>Warmth <output id="tempOut"></output></label><input type="range" id="temp" min="2200" max="6500" step="100"></div>
+  <div id="colorBox"><label>Color</label><div class="wheelWrap"><canvas id="wheel" width="480" height="480"></canvas><div id="marker"></div></div><div class="hexRow"><span id="hexDot"></span><code id="hexOut"></code></div></div>
+  <div id="fxBox"><label>Lights in this group</label><div id="fxMembers"></div></div>
+  <div class="btnrow"><button class="ghost" id="fxBtn">Group with other lights</button><button class="ghost" id="hideBtn">Hide from Lumen</button></div>
+</div>
+
+<div class="sheet" id="fxEd">
+  <div class="grab"></div>
+  <h3><span id="fxEdTitle">New light group</span> <button class="x" id="fxEdClose" aria-label="Close">×</button></h3>
+  <p class="fdesc">Combine lights on one device — like a ceiling fan with 4 bulbs — into a single card you control together.</p>
+  <form class="form" id="fxForm" style="margin-top:12px">
+    <input id="fxName" placeholder="Group name, e.g. Ceiling Fan" maxlength="30" required>
+    <select id="fxRoom"></select>
+    <label style="margin-top:6px">Lights</label>
+    <div id="fxPick"></div>
+    <div class="btnrow"><button type="button" class="ghost" id="fxDel">Ungroup</button><button class="primary">Save group</button></div>
+  </form>
+</div>
+
+<div class="sheet" id="conn">
+  <div class="grab"></div>
+  <h3>Connect your lights <button class="x" id="connClose" aria-label="Close">×</button></h3>
+  <p class="help">Lumen works with <b>any light Home Assistant can control</b> — Gosund, GHome, Philips Hue, WiZ, Kasa/Tapo, Govee, LIFX, Matter, Zigbee and 1,000+ more brands. Every light added in Home Assistant shows up here automatically.</p>
+  <form class="form" id="haForm" style="margin-top:14px">
+    <input id="haUrl" placeholder="http://homeassistant.local:8123" autocomplete="off">
+    <input id="haToken" type="password" placeholder="Long-lived access token" autocomplete="off">
+    <button class="primary" id="haConnect">Connect</button>
+    <button type="button" class="ghost" id="haDemo">Use demo lights</button>
+  </form>
+  <div class="msg" id="haMsg"></div>
+  <div class="help">
+    <b>Setup</b>
+    <ol>
+      <li><b>Gosund &amp; GHome:</b> remove the bulbs from the Gosund app and add them in the <b>Smart Life</b> app. Then in Home Assistant go to Settings → Devices &amp; services → Add integration → <b>Tuya</b> and scan the QR code with Smart Life.</li>
+      <li><b>Other brands from Google Home:</b> in the Google Home app open Settings → Works with Google to see which brands you use. Add each one with Lumen's <b>+ Add light</b> button (or in Home Assistant). Google Home keeps working alongside Lumen.</li>
+      <li><b>Lamps on smart plugs or wall switches:</b> turn on <b>Include plugs &amp; switches</b> in Settings.</li>
+      <li>Create a token: your Home Assistant profile → Security → <b>Long-lived access tokens</b>.</li>
+      <li>Copy this file to Home Assistant's <code>config/www/</code> folder and open <code>http://YOUR-HA:8123/local/lumen.html</code>. The hosted demo page can't reach your home network.</li>
+    </ol>
+  </div>
+</div>
+<div class="sheet" id="disp">
+  <div class="grab"></div>
+  <h3>Settings <button class="x" id="dispClose" aria-label="Close">×</button></h3>
+  <div class="sec">Appearance</div>
+  <label>Layout theme</label><div class="presets" id="presetGrid"></div>
+  <label>Color theme</label><div class="themes" id="themeGrid"></div>
+  <label>Accent color</label><div class="accents" id="accentRow"></div>
+  <label>Tile style</label>
+  <div class="seg" data-look="tiles"><button data-v="home">Home tiles</button><button data-v="cards">Cards</button></div>
+  <label>Tile color when on</label>
+  <div class="seg" data-look="tileColor"><button data-v="light">Light's color</button><button data-v="accent">Accent</button></div>
+  <label>Corners</label>
+  <div class="seg" data-look="corners"><button data-v="round">Round</button><button data-v="square">Square</button></div>
+  <label>Home name</label>
+  <div class="roomRow"><input id="homeIn" maxlength="24" placeholder="Home"></div>
+  <div class="sec">Layout</div>
+  <label>Icon size</label>
+  <div class="seg" data-opt="size"><button data-v="s">Small</button><button data-v="m">Medium</button><button data-v="l">Large</button></div>
+  <label>Layout</label>
+  <div class="seg" data-opt="layout"><button data-v="grid">Grid</button><button data-v="list">List</button></div>
+  <label>Group lights by</label>
+  <div class="seg" data-opt="group"><button data-v="room">Room</button><button data-v="brand">Brand</button><button data-v="status">On / Off</button><button data-v="none">None</button></div>
+  <div class="toggleRow">Show brand tags <button class="sw" data-flag="showBrand" aria-label="Show brand tags"></button></div>
+  <div class="toggleRow">Show stats <button class="sw" data-flag="showStats" aria-label="Show stats"></button></div>
+  <div class="toggleRow"><span>Include plugs &amp; switches<br><small style="color:var(--muted);font-size:12px">For lamps on smart plugs or wall switches</small></span> <button class="sw" data-flag="switches" aria-label="Include plugs and switches"></button></div>
+  <div class="sec">Rooms</div>
+  <div id="roomList" style="margin-top:10px"></div>
+  <form class="roomRow" id="addRoomForm"><input id="newRoom" placeholder="New room name" maxlength="30"><button class="primary" style="padding:9px 14px">Add</button></form>
+  <button type="button" class="addbtn" id="newFxBtn" style="margin-top:6px">+ New light group (e.g. ceiling fan with 4 bulbs)</button>
+  <p class="help" style="margin-top:8px">Rename a room by editing its name. To move a light, open it and pick a room.</p>
+  <div class="sec">Hidden devices</div>
+  <div id="hiddenList" style="margin-top:10px"></div>
+</div>
+<div class="sheet" id="add">
+  <div class="grab"></div>
+  <h3><span id="addTitle">Add a light</span> <button class="x" id="addClose" aria-label="Close">×</button></h3>
+  <div id="addBody"></div>
+</div>
+<div class="sheet" id="energy">
+  <div class="grab"></div>
+  <h3>Power usage <button class="x" id="energyClose" aria-label="Close">×</button></h3>
+  <div class="ebig">
+    <div><b id="eAvg">—</b><span>daily average<br>(last 7 days)</span></div>
+    <div><b id="eToday">—</b><span>today<br>so far</span></div>
+    <div><b id="eMonth">—</b><span>estimated<br>per month</span></div>
+  </div>
+  <div id="eChart"></div>
+  <label>Electricity rate <output>$ per kWh</output></label>
+  <input id="eRate" type="number" min="0" step="0.01" style="width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px">
+  <p class="help" id="eNote"></p>
+  <label>Using power right now</label>
+  <div id="eList"></div>
+</div>
+<div class="sheet" id="presetSh">
+  <div class="grab"></div>
+  <h3>Presets <button class="x" id="presetClose" aria-label="Close">×</button></h3>
+  <p class="fdesc">Set your lights how you like them, then save that as a preset. Tap the preset any time to bring it back.</p>
+  <form class="form" id="presetForm" style="margin-top:12px">
+    <input id="pName" placeholder="Preset name, e.g. Dinner" maxlength="24" required>
+    <select id="pRoom"></select>
+    <label class="chk" style="margin-top:4px"><input type="checkbox" id="pOff" checked>Include lights that are off (they'll turn off)</label>
+    <p class="fdesc" id="pCount"></p>
+    <button class="primary">Save current lights as preset</button>
+  </form>
+  <label>Your presets</label>
+  <div id="pList"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const COLORS=['#ff4d4d','#ff8c42','#ffc857','#7bd389','#3ec1d3','#4f7cff','#9b5de5','#f15bb5'];
+const SCENES=[
+  {n:'Bright',c:'#fff4e0',set:{on:true,b:100,mode:'white',t:5000}},
+  {n:'Relax',c:'#ff9a3c',set:{on:true,b:45,mode:'white',t:2700}},
+  {n:'Focus',c:'#cfe3ff',set:{on:true,b:90,mode:'white',t:6000}},
+  {n:'Movie',c:'#4f7cff',set:{on:true,b:20,mode:'color',color:'#4f7cff'}},
+  {n:'Party',c:'#f15bb5',set:'party'},
+  {n:'Nightlight',c:'#ff8c42',set:{on:true,b:5,mode:'white',t:2200}},
+];
+const CAPS={canDim:true,canColor:true,canTemp:true,minK:2200,maxK:6500};
+const D=(id,name,room,on,b,mode,t,color,w,brand)=>({id,name,room,on,b,mode,t,color,w,brand,...CAPS});
+const DEFAULT={lights:[
+  D(1,'Ceiling','Living Room',true,80,'white',3000,'#ffc857',9,'Gosund'),
+  D(2,'Floor Lamp','Living Room',true,55,'white',2700,'#ff8c42',8,'GHome'),
+  D(3,'TV Strip','Living Room',false,60,'color',4000,'#9b5de5',6,'GHome'),
+  D(4,'Pendants','Kitchen',true,100,'white',4000,'#ffc857',12,'Gosund'),
+  D(5,'Under Cabinet','Kitchen',false,70,'white',3500,'#ffc857',5,'Gosund'),
+  D(6,'Bedside L','Bedroom',false,30,'white',2400,'#ff8c42',6,'GHome'),
+  D(7,'Bedside R','Bedroom',false,30,'white',2400,'#ff8c42',6,'GHome'),
+  D(8,'Porch','Outdoor',false,100,'white',3000,'#ffc857',10,'Gosund'),
+],schedules:[{time:'06:45',room:'Kitchen',action:'on',en:true},{time:'22:30',room:'All',action:'Nightlight',en:true}],room:'All',scene:null,ha:{url:'',token:'',use:false}};
+let S;try{S=JSON.parse(localStorage.getItem('lumen'))||structuredClone(DEFAULT)}catch(e){S=structuredClone(DEFAULT)}
+S.ha=S.ha||{url:'',token:'',use:false};
+S.display=Object.assign({size:'m',layout:'grid',group:'room',showBrand:true,showStats:true,switches:false},S.display);
+S.hidden=S.hidden||{};
+S.look=Object.assign({preset:'material',theme:'dark',accent:'#f7c948',tiles:'home',tileColor:'light',corners:'round',home:'Home'},S.look);
+S.view=S.view||'devices';
+S.watts=S.watts||{};S.presets=S.presets||[];S.rate=S.rate??0.15;
+const dayKey=t=>{const x=new Date(t);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+if(!S.energy){S.energy={};for(let i=1;i<=13;i++){const d=new Date();d.setDate(d.getDate()-i);S.energy[dayKey(d)]=Math.round(820+260*Math.sin(i*1.7)+120*Math.cos(i*.6))}}
+S.roomMap=S.roomMap||{};S.customRooms=S.customRooms||[];S.roomOrder=S.roomOrder||[];
+if(!S.fixtures){S.fixtures=[];
+  if(!S.lights.some(l=>/^Fan bulb/.test(l.name))){
+    const ids=[1,2,3,4].map(i=>{const l=D(900+i,'Fan bulb '+i,'Bedroom',false,70,'white',2700,'#ff8c42',6,'Gosund');S.lights.push(l);return l.id});
+    S.fixtures.push({id:'fx_demo',name:'Ceiling Fan',room:'Bedroom',members:ids});
+  }}
+S.lights.forEach(l=>{for(const k in CAPS)if(l[k]===undefined)l[k]=CAPS[k]});
+const save=()=>{try{localStorage.setItem('lumen',JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+let cur=null,partyTimer=null;
+
+// ---------- Home Assistant ----------
+const HA={cfgEnts:new Set(),live:false,lights:[],meta:{},lastLocal:0,timers:{},poll:null,dragging:false};
+const LIGHTS=()=>(HA.live?HA.lights:S.lights).filter(l=>!(String(l.id) in S.hidden));
+async function haFetch(path,body,text){
+  const r=await fetch(S.ha.url.replace(/\/$/,'')+path,{method:body?'POST':'GET',
+    headers:{Authorization:'Bearer '+S.ha.token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  if(!r.ok)throw new Error(r.status===401?'Token was rejected (401).':'Home Assistant returned '+r.status+'.');
+  return text?r.text():r.json();
+}
+const META_TPL=`{% set ns=namespace(d={}) %}{% for s in states.light|list + states.switch|list %}{% set ns.d=dict(ns.d,**{s.entity_id:{'area':area_name(s.entity_id) or 'Other','maker':device_attr(s.entity_id,'manufacturer') or ''}}) %}{% endfor %}{{ ns.d|to_json }}`;
+async function loadMeta(){try{HA.meta=JSON.parse(await haFetch('/api/template',{template:META_TPL},true))}catch(e){}
+  // skip settings-type switches (child lock, indicator light…) and ones hidden in Home Assistant
+  try{if(S.display.switches){const r=await (await haWS()).call('config/entity_registry/list');HA.cfgEnts=new Set(r.filter(e=>e.entity_category||e.hidden_by||e.disabled_by).map(e=>e.entity_id))}}catch(e){}
+}
+function fromHA(s,prev){
+  const a=s.attributes,m=a.supported_color_modes||[],md=HA.meta[s.entity_id]||{};
+  const canColor=m.some(x=>['hs','rgb','rgbw','rgbww','xy'].includes(x)),canTemp=m.includes('color_temp'),
+        canDim=canColor||canTemp||m.includes('brightness')||m.includes('white');
+  const p=prev||{};
+  if(s.entity_id.startsWith('switch.'))return {id:s.entity_id,name:a.friendly_name||s.entity_id,room:md.area||'Other',brand:md.maker||'',
+    on:s.state==='on',na:s.state==='unavailable',b:100,mode:'white',t:p.t||3000,color:'#ffc857',w:8,sw:true,
+    canDim:false,canColor:false,canTemp:false,minK:2200,maxK:6500};
+  return {id:s.entity_id,name:a.friendly_name||s.entity_id,room:md.area||'Other',brand:md.maker||'',
+    on:s.state==='on',na:s.state==='unavailable',
+    b:a.brightness?Math.max(1,Math.round(a.brightness/2.55)):(p.b||100),
+    mode:a.color_mode&&a.color_mode!=='color_temp'&&canColor&&a.hs_color?'color':(a.color_mode==='color_temp'?'white':(p.mode||(canColor&&!canTemp?'color':'white'))),
+    t:a.color_temp_kelvin||p.t||3000,color:a.hs_color?hsvToHex(a.hs_color[0],a.hs_color[1]/100):(p.color||'#ffc857'),
+    w:8,canDim,canColor,canTemp,minK:a.min_color_temp_kelvin||2200,maxK:a.max_color_temp_kelvin||6500};
+}
+async function pull(){
+  const st=await haFetch('/api/states');
+  const prev=Object.fromEntries(HA.lights.map(l=>[l.id,l]));
+  HA.lights=st.filter(s=>s.entity_id.startsWith('light.')||(S.display.switches&&s.entity_id.startsWith('switch.')&&!HA.cfgEnts.has(s.entity_id))).map(s=>fromHA(s,prev[s.entity_id]))
+    .sort((a,b)=>a.room.localeCompare(b.room)||a.name.localeCompare(b.name));
+  if(cur&&!cur.isFx)cur=HA.lights.find(l=>l.id===cur.id)||null;
+}
+function push(...ls){
+  if(!HA.live)return;HA.lastLocal=Date.now();
+  ls.forEach(l=>{clearTimeout(HA.timers[l.id]);HA.timers[l.id]=setTimeout(()=>send(l),180)});
+}
+async function send(l){
+  try{
+    if(l.sw)return await haFetch('/api/services/switch/turn_'+(l.on?'on':'off'),{entity_id:l.id});
+    if(!l.on)return await haFetch('/api/services/light/turn_off',{entity_id:l.id});
+    const d={entity_id:l.id};
+    if(l.canDim)d.brightness_pct=l.b;
+    if(l.mode==='color'&&l.canColor){const[h,s]=hexToHs(l.color);d.hs_color=[Math.round(h),Math.round(s*100)]}
+    else if(l.canTemp)d.color_temp_kelvin=Math.min(l.maxK,Math.max(l.minK,l.t));
+    await haFetch('/api/services/light/turn_on',d);
+  }catch(e){setStatus('err','Connection lost');toast("Couldn't reach Home Assistant")}
+}
+function setStatus(cls,txt){$('pill').className='pill '+cls;$('pill').querySelector('span').textContent=txt}
+async function connect(quiet){
+  $('haMsg').className='msg';$('haMsg').textContent='Connecting…';
+  try{
+    await haFetch('/api/');await loadMeta();HA.live=true;HA.lights=[];await pull();
+    S.ha.use=true;S.room='All';S.scene=null;save();
+    $('haMsg').className='msg ok';$('haMsg').textContent=`Connected — found ${HA.lights.length} device${HA.lights.length===1?'':'s'}${HA.lights.length?'':'. Add lights with the + button'}.`;
+    setStatus('live','Home Assistant');
+    clearInterval(HA.poll);
+    HA.poll=setInterval(async()=>{
+      if(!HA.live||HA.dragging||Date.now()-HA.lastLocal<3000||partyTimer)return;
+      try{await pull();render();setStatus('live','Home Assistant')}catch(e){setStatus('err','Connection lost')}
+    },4000);
+    setInterval(loadMeta,60000);loadEnergy();
+    render();if(!quiet)setTimeout(closeAll,700);
+  }catch(e){
+    HA.live=false;
+    const blocked=e instanceof TypeError;
+    $('haMsg').className='msg err';
+    $('haMsg').textContent=blocked?"Couldn't reach Home Assistant from this page. Open Lumen from your Home Assistant (step 4 below).":e.message;
+    if(quiet)setStatus('err','Not connected — using demo');
+    render();
+  }
+}
+function useDemo(){HA.live=false;clearInterval(HA.poll);S.ha.use=false;S.room='All';save();setStatus('','Demo mode');render();closeAll()}
+
+// ---------- color helpers ----------
+function kToHex(k){const t=k/100;let r,g,b;
+  r=t<=66?255:329.7*Math.pow(t-60,-0.133);
+  g=t<=66?99.47*Math.log(t)-161.1:288.1*Math.pow(t-60,-0.0755);
+  b=t>=66?255:t<=19?0:138.5*Math.log(t-10)-305;
+  const c=v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0');return '#'+c(r)+c(g)+c(b)}
+function hsvToHex(h,s,v=1){const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};
+  return '#'+[f(5),f(3),f(1)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('')}
+function hexToHs(hex){const n=parseInt(hex.slice(1),16),r=(n>>16&255)/255,g=(n>>8&255)/255,b=(n&255)/255;
+  const mx=Math.max(r,g,b),d=mx-Math.min(r,g,b);let h=0;
+  if(d){h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}
+  return [h,mx?d/mx:0]}
+const PRESETS=[
+  {k:'material',n:'Material',d:'Big rounded tiles you slide to dim',pv:['#131316','#fbe7a1','#2a2b30'],look:{theme:'dark',accent:'#f7c948',tiles:'home',tileColor:'light',corners:'round'},disp:{layout:'grid',size:'m'}},
+  {k:'glass',n:'Glass',d:'Frosted square tiles on a warm wallpaper',pv:['#6b3f6a','rgba(255,255,255,.9)','#d88c5d'],look:{theme:'glass',accent:'#ff9f0a',tiles:'home',tileColor:'accent',corners:'round'},disp:{layout:'grid',size:'m'}},
+  {k:'bridge',n:'Bridge',d:'Rooms as color gradients, lights as colored rows',pv:['#000','#ff8c42','#9b5de5'],look:{theme:'black',accent:'#e8e8e8',tiles:'home',tileColor:'light',corners:'round'},disp:{layout:'list',size:'m',group:'room'}},
+  {k:'hub',n:'Hub',d:'Clean white cards with brightness bars',pv:['#f4f5f7','#ffffff','#3695dd'],look:{theme:'hub',accent:'#3695dd',tiles:'home',tileColor:'accent',corners:'round'},disp:{layout:'grid',size:'m'}},
+  {k:'echo',n:'Echo',d:'Navy list rows with a glowing edge',pv:['#0d1a28','#1c3249','#00caff'],look:{theme:'echo',accent:'#00caff',tiles:'home',tileColor:'accent',corners:'square'},disp:{layout:'list',size:'m'}},
+  {k:'classic',n:'Classic',d:'The original Lumen glowing cards',pv:['#0f1115','#181b22','#ffc857'],look:{theme:'classic',accent:'#ffc857',tiles:'cards',tileColor:'light',corners:'round'},disp:{layout:'grid',size:'m'}},
+];
+const THEMES=[['system','System',['#131316','#f2f3f8']],['dark','Dark',['#131316','#2a2b30']],['light','Light',['#f2f3f8','#ffffff']],['black','Black',['#000000','#1b1c1f']],['ocean','Ocean',['#0b1622','#1a2d3e']],['forest','Forest',['#101712','#223026']],['classic','Classic',['#0f1115','#ffc857']],['glass','Glass',['#6b3f6a','#e6a15a']],['hub','Hub',['#f4f5f7','#3695dd']],['echo','Echo',['#0d1a28','#00caff']]];
+const ACCENTS=['#f7c948','#3695dd','#00caff','#ff9f0a','#8ab4f8','#81c995','#f28b82','#c58af9','#78d9ec','#fcad70'];
+const sysDark=matchMedia('(prefers-color-scheme: dark)');
+function applyLook(){
+  const L=S.look,th=L.theme==='system'?(sysDark.matches?'dark':'light'):L.theme;
+  const de=document.documentElement;de.dataset.theme=th;de.classList.toggle('corners-square',L.corners==='square');
+  de.style.setProperty('--accent',L.accent);
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content',getComputedStyle(de).getPropertyValue('--bg'));
+  $('homeName').textContent=L.home||'Home';
+}
+sysDark.addEventListener?.('change',()=>{applyLook();render()});
+function mixHex(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),x=p(a),y=p(b);return '#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('')}
+function lum(h){const [r,g,b]=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);return .2126*r+.7152*g+.0722*b}
+function tileFill(l){const base=S.look.tileColor==='accent'?S.look.accent:lc(l);const f=mixHex(base,'#ffffff',S.look.tileColor==='accent'?.15:.3);return [f,lum(f)>.5?'#1b1b1f':'#ffffff']}
+const lc=l=>l.mode==='color'&&l.canColor?l.color:kToHex(l.t);
+const roomOf=l=>S.roomMap[l.id]??l.room;
+function roomList(){
+  const all=[...new Set([...LIGHTS().map(roomOf),...S.customRooms])];
+  const idx=r=>{const i=S.roomOrder.indexOf(r);return i<0?1e9:i};
+  return all.sort((a,b)=>idx(a)-idx(b)||a.localeCompare(b));
+}
+const rooms=()=>['All',...roomList()];
+const inRoom=(l,r=S.room)=>r==='All'||roomOf(l)===r;
+// ---------- fixtures (several lights on one device) ----------
+const byId=id=>LIGHTS().find(l=>String(l.id)===String(id));
+const fxOf=id=>S.fixtures.find(f=>f.members.some(m=>String(m)===String(id)));
+function fxProxy(f){
+  const ms=f.members.map(byId).filter(Boolean);if(!ms.length)return null;
+  const on=ms.filter(l=>l.on),lead=on[0]||ms[0],brands=[...new Set(ms.map(l=>l.brand).filter(Boolean))];
+  return {isFx:true,fx:f,id:f.id,name:f.name,room:f.room,members:ms,on:on.length>0,na:ms.every(l=>l.na),
+    b:on.length?Math.round(on.reduce((a,l)=>a+l.b,0)/on.length):lead.b,mode:lead.mode,t:lead.t,color:lead.color,
+    w:ms.reduce((a,l)=>a+l.w,0),brand:brands.length===1?brands[0]:brands.length?'Mixed':'',
+    canDim:ms.some(l=>l.canDim),canColor:ms.some(l=>l.canColor),canTemp:ms.some(l=>l.canTemp),
+    minK:Math.max(...ms.map(l=>l.minK)),maxK:Math.min(...ms.map(l=>l.maxK))};
+}
+function viewItems(){
+  const inFx=new Set(S.fixtures.flatMap(f=>f.members.map(String)));
+  const out=[];const seen=new Set();
+  LIGHTS().forEach(l=>{
+    if(!inFx.has(String(l.id)))return out.push(l);
+    const f=fxOf(l.id);if(seen.has(f.id))return;seen.add(f.id);
+    const p=fxProxy(f);if(p)out.push(p);
+  });
+  return out;
+}
+const targets=x=>x.isFx?x.members:[x];
+function setCur(p){if(!cur)return;userChange();Object.assign(cur,p);const ts=targets(cur);ts.forEach(l=>Object.assign(l,p));push(...ts);render()}
+const GROUPERS={
+  room:{key:roomOf,order:()=>roomList()},
+  brand:{key:l=>l.brand||'Other brand',order:ks=>[...ks].sort()},
+  status:{key:l=>l.on?'On':'Off',order:()=>['On','Off']},
+};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
+
+// ---------- render ----------
+function render(){
+  const L=LIGHTS();if(!rooms().includes(S.room))S.room='All';
+  const on=L.filter(l=>l.on);
+  $('sOn').textContent=on.length+'/'+L.length;
+  $('sW').textContent=fmtW(powerNow());$('sDay').textContent=fmtWh(avgDaily());
+  $('sAvg').textContent=(on.length?Math.round(on.reduce((a,l)=>a+l.b,0)/on.length):0)+'%';
+  $('summary').textContent=L.length?(on.length?`${on.length} light${on.length>1?'s':''} on`:'Everything is off'):'No lights found';
+  const roomOn=L.some(l=>inRoom(l)&&l.on);
+  $('masterBtn').textContent=(roomOn?'Turn off ':'Turn on ')+(S.room==='All'?'all':S.room);
+  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
+
+  const myP=S.presets.filter(p=>S.room==='All'||p.room==='All'||p.room===S.room);
+  $('scenes').innerHTML=myP.map(p=>`<button class="scene ${S.scene==='p:'+p.id?'active':''}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join('')
+    +SCENES.map(s=>`<button class="scene ${S.scene===s.n?'active':''}" data-s="${s.n}"><span class="dot" style="background:${s.c}"></span>${s.n}</button>`).join('')
+    +`<button class="scene" id="presetBtn" style="color:var(--muted)">＋ Preset</button>`;
+  const fa=$('fAction'),fv=fa.value;
+  fa.innerHTML=`<option value="on">Turn on</option><option value="off">Turn off</option>`+S.presets.map(p=>`<option value="p:${p.id}">Preset: ${esc(p.name)}</option>`).join('')+SCENES.filter(s=>s.set!=='party').map(s=>`<option value="${s.n}">Scene: ${s.n}</option>`).join('');
+  if(fv&&[...fa.options].some(o=>o.value===fv))fa.value=fv;
+  $('tabs').innerHTML=rooms().map(r=>{const n=L.filter(l=>inRoom(l,r)&&l.on).length;return `<button class="tab ${S.room===r?'active':''}" data-r="${esc(r)}">${esc(r)}${n?' · '+n:''}</button>`}).join('');
+  const Dp=S.display;
+  const home=S.look.tiles==='home';
+  document.body.className=`size-${Dp.size} layout-${Dp.layout}${Dp.showBrand?'':' hide-brand'} tiles-${home?'home':'cards'} brand-${S.look.preset||'material'}`;
+  $('tileHint').hidden=!home;
+  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';
+  document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.view));
+  $('statsBox').hidden=!Dp.showStats;
+  const card=l=>{const c=lc(l);
+    if(home){const [fill,ink]=tileFill(l);return `
+    <div class="light ${l.on?'on':''} ${l.na?'na':''}" data-tile="${esc(l.id)}" style="--c:${c};--fill:${fill};--ink:${ink};--b:${l.canDim?l.b:100}%">
+      <div class="bulb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></div>
+      ${l.isFx?`<span class="fxcount">×${l.members.length}</span>`:''}
+      <div class="info"><div class="name">${esc(l.name)}</div>
+        <div class="meta">${S.room==='All'&&Dp.group!=='room'?esc(roomOf(l))+' · ':''}<span class="st">${l.na?'Unavailable':l.on?(l.canDim?l.b+'%':'On'):'Off'}</span></div>${l.brand?`<span class="brand">${esc(l.brand)}</span>`:''}</div>
+      <button class="chev" data-id="${esc(l.id)}" aria-label="Controls for ${esc(l.name)}">›</button>
+    </div>`}
+    return `
+    <div class="light ${l.on?'on':''} ${l.na?'na':''}" data-id="${esc(l.id)}" style="--c:${c}">
+      <div class="glow" style="background:radial-gradient(circle at 20% 15%,${c}${Math.round(20+l.b*.4).toString(16)},transparent 70%)"></div>
+      <div class="bulb" style="${l.on?`background:${c};`:''}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+      </div>
+      ${l.isFx?`<span class="fxcount">×${l.members.length}</span>`:''}
+      <div class="info"><div class="name">${esc(l.name)}</div>
+        <div class="meta">${S.room==='All'&&Dp.group!=='room'?esc(roomOf(l))+' · ':''}${l.isFx?l.members.filter(m=>m.on).length+'/'+l.members.length+' on · ':''}${l.na?'Unavailable':l.on?(l.canDim?l.b+'%':'On'):'Off'}</div>${l.brand?`<span class="brand">${esc(l.brand)}</span>`:''}</div>
+      <button class="sw ${l.on?'on':''}" data-t="${esc(l.id)}" aria-label="Toggle ${esc(l.name)}"></button>
+    </div>`};
+  const vis=viewItems().filter(l=>inRoom(l));
+  if(Dp.group==='none'||!GROUPERS[Dp.group]){
+    $('grid').innerHTML=vis.length?`<div class="grid">${vis.map(card).join('')}</div>`:'<div class="empty" style="margin-top:12px">No lights here yet. Open a light and choose this room to move it.</div>';
+  }else{
+    const g=GROUPERS[Dp.group],buckets={};
+    vis.forEach(l=>(buckets[g.key(l)]??=[]).push(l));
+    let keys=g.order(Object.keys(buckets));
+    keys=keys.filter(k=>buckets[k]||(Dp.group==='room'&&(S.room==='All'||S.room===k)));
+    $('grid').innerHTML=keys.map(k=>{const ls=buckets[k]||[],n=ls.filter(l=>l.on).length;return `<div class="gsec">
+      <div class="ghead" style="${(()=>{const cs=ls.filter(l=>l.on).map(l=>mixHex(lc(l),'#000000',.2));return cs.length?`--grad:linear-gradient(100deg,${cs.length>1?cs.join(','):cs[0]+','+mixHex(cs[0],'#000000',.45)})`:''})()}"><div><b>${esc(k)}</b><small>${ls.length?`${n}/${ls.length} on`:'empty'}</small></div>${ls.length?`<button class="sw ${n?'on':''}" data-g="${esc(k)}" aria-label="Toggle ${esc(k)}"></button>`:''}</div>
+      ${ls.length?`<div class="grid">${ls.map(card).join('')}</div>`:'<div class="empty">No lights yet. Open a light and choose this room to move it.</div>'}</div>`}).join('')||'<div class="empty" style="margin-top:12px">No lights found.</div>';
+  }
+  if($('disp').classList.contains('open'))renderDisp();
+  if(cur&&cur.isFx){const f=S.fixtures.find(x=>x.id===cur.id);cur=f?fxProxy(f):null;if(!cur)closeAll()}
+
+  $('schedList').innerHTML=S.schedules.map((s,i)=>`<div class="sched"><div>${s.time}<small>${esc(s.room)} — ${s.action==='on'?'Turn on':s.action==='off'?'Turn off':s.action.startsWith('p:')?'Preset: '+esc(S.presets.find(p=>'p:'+p.id===s.action)?.name||'(deleted)'):'Scene: '+s.action}</small></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="sw ${s.en?'on':''}" data-se="${i}" aria-label="Enable"></button><button class="x" data-sd="${i}" aria-label="Delete">×</button></div></div>`).join('')||'<p class="sub" style="margin-bottom:8px">No schedules yet.</p>';
+  $('fRoom').innerHTML=rooms().map(r=>`<option>${esc(r)}</option>`).join('');
+  if(cur)renderSheet();
+  save();
+}
+
+// ---------- scenes ----------
+function applyPreset(id){
+  const p=S.presets.find(x=>x.id===id);if(!p)return;stopParty();
+  const ls=[];for(const [lid,st] of Object.entries(p.states)){const l=byId(lid);if(l){Object.assign(l,st);ls.push(l)}}
+  push(...ls);S.scene='p:'+id;render();toast(`${p.name} — ${ls.length} light${ls.length===1?'':'s'}`);
+}
+function applyScene(name,room=S.room){
+  if(name.startsWith('p:'))return applyPreset(name.slice(2));
+  const sc=SCENES.find(s=>s.n===name);if(!sc)return;
+  stopParty();
+  if(sc.set==='party')startParty(room);
+  else{const ls=LIGHTS().filter(l=>inRoom(l,room));ls.forEach(l=>Object.assign(l,sc.set));push(...ls)}
+  S.scene=name;render();toast(`${name} — ${room==='All'?'whole home':room}`);
+}
+function startParty(room){
+  const tick=()=>{const ls=LIGHTS().filter(l=>inRoom(l,room));
+    ls.forEach(l=>{l.on=true;l.b=80;if(l.canColor){l.mode='color';l.color=COLORS[Math.floor(Math.random()*COLORS.length)]}});push(...ls);render()};
+  tick();partyTimer=setInterval(tick,HA.live?2000:900);
+}
+function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
+
+// ---------- light sheet ----------
+function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
+function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
+function renderSheet(){
+  const l=cur;$('shName').textContent=l.name;
+  const pf=!l.isFx&&fxOf(l.id);
+  $('shRoom').textContent=roomOf(l)+(l.isFx?` · ${l.members.length} lights`:'')+(pf?` · part of ${pf.name}`:'')+(l.brand?' · '+l.brand:'');
+  $('fxBox').hidden=!l.isFx;$('hideBtn').hidden=!!l.isFx;$('fxBtn').textContent=l.isFx||pf?'Edit group':'Group with other lights';
+  if(l.isFx)$('fxMembers').innerHTML=l.members.map(m=>`<div class="mrow" data-id="${esc(m.id)}"><i class="mdot" style="${m.on?`background:${lc(m)};box-shadow:0 0 8px ${lc(m)}`:''}"></i><span>${esc(m.name)}<br><small>${m.na?'Unavailable':m.on?(m.canDim?m.b+'%':'On'):'Off'}</small></span><button class="sw ${m.on?'on':''}" data-t="${esc(m.id)}" aria-label="Toggle ${esc(m.name)}"></button></div>`).join('');
+  const rl=roomList();$('shRoomSel').innerHTML=rl.map(r=>`<option ${r===roomOf(l)?'selected':''}>${esc(r)}</option>`).join('');
+  $('shSw').className='sw'+(l.on?' on':'');
+  $('briBox').hidden=!l.canDim;
+  $('bri').value=l.b;$('briOut').textContent=l.b+'%';$('bri').style.setProperty('--c',lc(l));
+  $('temp').min=l.minK;$('temp').max=l.maxK;$('temp').value=l.t;$('tempOut').textContent=l.t+'K';
+  const both=l.canColor&&l.canTemp;$('modeBox').hidden=!both;
+  const mode=!l.canColor?'white':!l.canTemp?'color':l.mode;
+  document.querySelectorAll('.mode button').forEach(b=>b.classList.toggle('active',b.dataset.m===mode));
+  $('whiteBox').hidden=mode!=='white'||!l.canTemp;$('colorBox').hidden=mode!=='color';
+  if(document.activeElement!==$('shW')){$('shW').value=l.isFx?wOf(l.members[0]):wOf(l)}
+  $('shWLbl').textContent=l.isFx?'Wattage per bulb':'Bulb wattage';
+  const [h,s]=hexToHs(l.color),R=120,a=h*Math.PI/180;
+  const m=$('marker');m.style.left=(R+Math.cos(a)*s*R)+'px';m.style.top=(R+Math.sin(a)*s*R)+'px';m.style.background=l.color;
+  $('hexDot').style.background=l.color;$('hexOut').textContent=l.color.toUpperCase();
+}
+(function drawWheel(){const c=$('wheel'),ctx=c.getContext('2d'),N=c.width,R=N/2,img=ctx.createImageData(N,N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=x-R,dy=y-R,d=Math.hypot(dx,dy);if(d>R)continue;
+    let h=Math.atan2(dy,dx)*180/Math.PI;if(h<0)h+=360;const n=parseInt(hsvToHex(h,d/R).slice(1),16),i=(y*N+x)*4;
+    img.data[i]=n>>16&255;img.data[i+1]=n>>8&255;img.data[i+2]=n&255;img.data[i+3]=d>R-1.5?Math.round((R-d)/1.5*255):255}
+  ctx.putImageData(img,0,0)})();
+function pickColor(e){if(!cur)return;const r=$('wheel').getBoundingClientRect(),R=r.width/2;
+  const dx=e.clientX-r.left-R,dy=e.clientY-r.top-R;let h=Math.atan2(dy,dx)*180/Math.PI;if(h<0)h+=360;
+  setCur({color:hsvToHex(h,Math.min(Math.hypot(dx,dy)/R,1)),mode:'color',on:true})}
+$('wheel').addEventListener('pointerdown',e=>{HA.dragging=true;$('wheel').setPointerCapture(e.pointerId);pickColor(e)});
+$('wheel').addEventListener('pointermove',e=>{if(e.buttons)pickColor(e)});
+addEventListener('pointerup',()=>{HA.dragging=false});
+const userChange=()=>{stopParty();S.scene=null};
+
+// ---------- events ----------
+document.addEventListener('click',e=>{
+  if(e.target.closest('#presetBtn'))return openPresets();
+  const t=e.target.closest('[data-g],[data-t],[data-id],[data-r],[data-s],[data-p],[data-se],[data-sd],[data-m]');if(!t)return;
+  if(t.dataset.g){userChange();const k=GROUPERS[S.display.group].key,ls=LIGHTS().filter(l=>inRoom(l)&&k(l)===t.dataset.g),on=ls.some(l=>l.on);ls.forEach(l=>l.on=!on);push(...ls);render();return}
+  if(t.dataset.t){e.stopPropagation();userChange();const it=viewItems().find(x=>String(x.id)===t.dataset.t)||byId(t.dataset.t);if(!it)return;const ts=targets(it),v=!it.on;ts.forEach(l=>l.on=v);push(...ts);render();return}
+  if(t.dataset.id)return openSheet(t.dataset.id);
+  if(t.dataset.r){S.room=t.dataset.r;render();return}
+  if(t.dataset.s)return applyScene(t.dataset.s);
+  if(t.dataset.p)return applyPreset(t.dataset.p);
+  if(t.dataset.se){const s=S.schedules[t.dataset.se];s.en=!s.en;render();return}
+  if(t.dataset.sd){S.schedules.splice(t.dataset.sd,1);render();toast('Schedule removed');return}
+  if(t.dataset.m&&cur){setCur({mode:t.dataset.m});return}
+});
+$('masterBtn').onclick=()=>{userChange();const ls=LIGHTS().filter(l=>inRoom(l)),on=ls.some(l=>l.on);ls.forEach(l=>l.on=!on);push(...ls);render()};
+$('shSw').onclick=()=>setCur({on:!cur.on});
+$('bri').oninput=e=>{HA.dragging=true;setCur({b:+e.target.value,on:true})};
+$('temp').oninput=e=>{HA.dragging=true;setCur({t:+e.target.value,mode:'white',on:true})};
+['bri','temp'].forEach(i=>$(i).addEventListener('change',()=>{HA.dragging=false}));
+$('backdrop').onclick=closeAll;$('connClose').onclick=closeAll;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+$('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
+$('haForm').onsubmit=e=>{e.preventDefault();S.ha.url=$('haUrl').value.trim();S.ha.token=$('haToken').value.trim();
+  if(!S.ha.url||!S.ha.token){$('haMsg').className='msg err';$('haMsg').textContent='Enter your Home Assistant address and token.';return}connect()};
+$('haDemo').onclick=useDemo;
+
+// ---------- display & rooms ----------
+function renderDisp(){
+  document.querySelectorAll('#disp .seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.classList.toggle('active',S.display[s.dataset.opt]===b.dataset.v)));
+  document.querySelectorAll('#disp [data-flag]').forEach(b=>b.classList.toggle('on',!!S.display[b.dataset.flag]));
+  const rl=roomList();
+  $('roomList').innerHTML=rl.map((r,i)=>{const n=LIGHTS().filter(l=>roomOf(l)===r).length;return `<div class="roomRow">
+    <input value="${esc(r)}" data-rename="${esc(r)}" maxlength="30" aria-label="Room name">
+    <small>${n} light${n===1?'':'s'}</small>
+    <button class="iconbtn" data-up="${i}" ${i?'':'disabled style="opacity:.3"'} aria-label="Move up">↑</button>
+    <button class="iconbtn" data-del="${esc(r)}" aria-label="Delete room">×</button></div>`}).join('');
+  const hid=Object.entries(S.hidden);
+  $('hiddenList').innerHTML=hid.length?hid.map(([id,n])=>`<div class="roomRow"><span style="flex:1;font-size:14px">${esc(n)}</span><button class="ghost" style="padding:7px 12px" data-unhide="${esc(id)}">Show</button></div>`).join(''):'<p class="help" style="margin-top:0">Nothing hidden. Open a device and tap “Hide from Lumen” to tuck it away.</p>';
+}
+$('dispBtn').onclick=()=>{renderLook();renderDisp();$('disp').classList.add('open');$('backdrop').classList.add('open')};
+$('dispClose').onclick=closeAll;
+$('newFxBtn').onclick=()=>openFxEd(null);
+$('disp').addEventListener('click',e=>{
+  const sb=e.target.closest('.seg button');
+  if(sb){S.display[sb.parentElement.dataset.opt]=sb.dataset.v;render();renderDisp();return}
+  const f=e.target.closest('[data-flag]');
+  if(f){S.display[f.dataset.flag]=!S.display[f.dataset.flag];
+    if(f.dataset.flag==='switches'&&HA.live){loadMeta().then(pull).then(()=>{render();toast(S.display.switches?'Plugs & switches added':'Plugs & switches removed')}).catch(()=>{})}
+    render();renderDisp();return}
+  const uh=e.target.closest('[data-unhide]');
+  if(uh){const n=S.hidden[uh.dataset.unhide];delete S.hidden[uh.dataset.unhide];render();renderDisp();toast(`${n} is back`);return}
+  const up=e.target.closest('[data-up]');
+  if(up){const rl=roomList(),i=+up.dataset.up;if(i>0){[rl[i-1],rl[i]]=[rl[i],rl[i-1]];S.roomOrder=rl;render();renderDisp()}return}
+  const del=e.target.closest('[data-del]');
+  if(del){const r=del.dataset.del,n=LIGHTS().filter(l=>roomOf(l)===r);
+    n.forEach(l=>S.roomMap[l.id]='Unassigned');S.fixtures.forEach(f=>{if(f.room===r)f.room='Unassigned'});
+    S.customRooms=S.customRooms.filter(x=>x!==r);S.roomOrder=S.roomOrder.filter(x=>x!==r);
+    S.schedules.forEach(s=>{if(s.room===r)s.room='Unassigned'});
+    if(S.room===r)S.room='All';render();renderDisp();toast(n.length?`${r} removed — ${n.length} light${n.length>1?'s':''} moved to Unassigned`:`${r} removed`);return}
+});
+$('disp').addEventListener('change',e=>{
+  const inp=e.target.closest('[data-rename]');if(!inp)return;
+  const old=inp.dataset.rename,nw=inp.value.trim();
+  if(!nw||nw===old){inp.value=old;return}
+  if(nw==='All'||roomList().includes(nw)){inp.value=old;toast('That room name is already used');return}
+  LIGHTS().forEach(l=>{if(roomOf(l)===old)S.roomMap[l.id]=nw});S.fixtures.forEach(f=>{if(f.room===old)f.room=nw});
+  S.customRooms=S.customRooms.map(x=>x===old?nw:x);S.roomOrder=S.roomOrder.map(x=>x===old?nw:x);
+  S.schedules.forEach(s=>{if(s.room===old)s.room=nw});
+  if(S.room===old)S.room=nw;render();renderDisp();toast(`Renamed to ${nw}`);
+});
+$('addRoomForm').onsubmit=e=>{e.preventDefault();const r=$('newRoom').value.trim();
+  if(!r)return;if(r==='All'||roomList().includes(r)){toast('That room already exists');return}
+  S.customRooms.push(r);$('newRoom').value='';render();renderDisp();toast(`${r} added`)};
+// ---------- tile gestures (tap = toggle, slide = dim, long-press = controls) ----------
+let G=null;
+$('grid').addEventListener('pointerdown',e=>{
+  const tile=e.target.closest('[data-tile]');if(!tile||e.target.closest('[data-id]')||e.button>0)return;
+  const it=viewItems().find(x=>String(x.id)===tile.dataset.tile);if(!it)return;
+  G={tile,it,id:e.pointerId,x:e.clientX,y:e.clientY,b:it.on?it.b:0,moved:false,long:false,w:tile.offsetWidth};
+  G.lp=setTimeout(()=>{if(G&&!G.moved){G.long=true;const id=G.it.id;G=null;openSheet(id)}},550);
+});
+addEventListener('pointermove',e=>{
+  if(!G||e.pointerId!==G.id)return;const dx=e.clientX-G.x,dy=e.clientY-G.y;
+  if(!G.moved){
+    if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){clearTimeout(G.lp);G=null;return}
+    if(Math.abs(dx)>8&&G.it.canDim){G.moved=true;clearTimeout(G.lp);HA.dragging=true;try{G.tile.setPointerCapture(e.pointerId)}catch(_){}}
+  }
+  if(G.moved){
+    const b=Math.max(1,Math.min(100,Math.round(G.b+dx/G.w*100)));if(b===G.it.b&&G.it.on)return;
+    userChange();const ts=targets(G.it);ts.forEach(l=>{l.b=b;l.on=true});G.it.b=b;G.it.on=true;push(...ts);
+    G.tile.classList.add('on');G.tile.style.setProperty('--b',b+'%');const st=G.tile.querySelector('.st');if(st)st.textContent=b+'%';
+  }
+});
+addEventListener('pointerup',e=>{
+  if(!G||e.pointerId!==G.id)return;clearTimeout(G.lp);const g=G;G=null;HA.dragging=false;
+  if(g.moved){render();return}
+  if(!g.long&&!g.it.na){userChange();const ts=targets(g.it),v=!g.it.on;ts.forEach(l=>l.on=v);push(...ts);render()}
+});
+addEventListener('pointercancel',()=>{if(G){clearTimeout(G.lp);G=null;HA.dragging=false}});
+$('grid').addEventListener('contextmenu',e=>{if(e.target.closest('[data-tile]'))e.preventDefault()});
+
+// ---------- navigation & appearance ----------
+document.querySelectorAll('.bnav [data-view]').forEach(b=>b.onclick=()=>{S.view=b.dataset.view;render();scrollTo({top:0,behavior:'smooth'})});
+$('addTop').onclick=()=>openAdd();
+function renderLook(){
+  $('presetGrid').innerHTML=PRESETS.map(p=>`<button data-preset="${p.k}" class="${S.look.preset===p.k?'active':''}"><div class="pv" style="background:${p.pv[0]}">${p.pv.slice(1).map(c=>`<span style="background:${c}"></span>`).join('')}</div><b>${p.n}</b><small>${p.d}</small></button>`).join('');
+  $('themeGrid').innerHTML=THEMES.map(([k,n,c])=>`<button data-theme-opt="${k}" class="${S.look.theme===k?'active':''}"><div class="pv">${c.map(x=>`<span style="background:${x}"></span>`).join('')}</div>${n}</button>`).join('');
+  $('accentRow').innerHTML=ACCENTS.map(a=>`<button data-accent="${a}" class="${S.look.accent===a?'active':''}" style="background:${a}" aria-label="Accent ${a}"></button>`).join('');
+  document.querySelectorAll('[data-look]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.classList.toggle('active',S.look[sg.dataset.look]===b.dataset.v)));
+  $('homeIn').value=S.look.home;
+}
+$('disp').addEventListener('click',e=>{
+  const th=e.target.closest('[data-theme-opt]'),ac=e.target.closest('[data-accent]'),lk=e.target.closest('[data-look] button'),pr=e.target.closest('[data-preset]');
+  if(!th&&!ac&&!lk&&!pr)return;
+  if(pr){const p=PRESETS.find(x=>x.k===pr.dataset.preset);S.look.preset=p.k;Object.assign(S.look,p.look);Object.assign(S.display,p.disp);renderDisp()}e.stopImmediatePropagation();
+  if(th){S.look.theme=th.dataset.themeOpt;if(S.look.theme==='classic'&&S.look.accent===ACCENTS[0])S.look.accent='#ffc857'}
+  if(ac)S.look.accent=ac.dataset.accent;
+  if(lk)S.look[lk.parentElement.dataset.look]=lk.dataset.v;
+  applyLook();render();renderLook();
+},true);
+$('homeIn').oninput=e=>{S.look.home=e.target.value.trim()||'Home';applyLook();save()};
+
+// ---------- energy ----------
+const wOf=l=>S.watts[l.id]??l.w??8;
+const powerOf=l=>l.on&&!l.na?wOf(l)*(l.canDim?l.b:100)/100:0;
+const powerNow=()=>LIGHTS().reduce((a,l)=>a+powerOf(l),0);
+const fmtW=w=>(w<10?w.toFixed(1):Math.round(w))+' W';
+const fmtWh=wh=>wh==null?'—':wh<1000?Math.round(wh)+' Wh':(wh/1000).toFixed(wh<10000?2:1)+' kWh';
+const energyLog=()=>HA.live?(HA.energy||{}):S.energy;
+function avgDaily(){
+  const E=energyLog(),vals=[];
+  for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);const v=E[dayKey(d)];if(v!=null)vals.push(v)}
+  if(!vals.length){const t=E[dayKey(Date.now())];if(t==null)return null;const frac=(Date.now()-new Date().setHours(0,0,0,0))/864e5;return frac>.05?t/frac:null}
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+let lastTick=Date.now();
+setInterval(()=>{const now=Date.now();
+  if(!HA.live){const k=dayKey(now);S.energy[k]=(S.energy[k]||0)+powerNow()*(now-lastTick)/3.6e6;
+    const keys=Object.keys(S.energy).sort();while(keys.length>60)delete S.energy[keys.shift()];save()}
+  lastTick=now;$('sDay').textContent=fmtWh(avgDaily());if($('energy').classList.contains('open'))renderEnergy()},30000);
+async function loadEnergy(){
+  if(!HA.live||!HA.lights.length)return;
+  const start=new Date();start.setHours(0,0,0,0);start.setDate(start.getDate()-13);
+  try{
+    const res=await haFetch(`/api/history/period/${start.toISOString()}?end_time=${encodeURIComponent(new Date().toISOString())}&filter_entity_id=${HA.lights.map(l=>l.id).join(',')}&significant_changes_only=0`);
+    const E={},now=Date.now(),t0s=start.getTime();
+    res.forEach(list=>{if(!list.length)return;const l=HA.lights.find(x=>x.id===list[0].entity_id);if(!l)return;const w=wOf(l);
+      list.forEach((st,i)=>{if(st.state!=='on')return;
+        let a=Math.max(new Date(st.last_updated||st.last_changed).getTime(),t0s);
+        const b=i+1<list.length?new Date(list[i+1].last_updated||list[i+1].last_changed).getTime():now;
+        const p=w*(st.attributes?.brightness!=null?st.attributes.brightness/255:1);
+        while(a<b){const m=new Date(a);m.setHours(24,0,0,0);const e=Math.min(b,m.getTime());const k=dayKey(a);E[k]=(E[k]||0)+p*(e-a)/3.6e6;a=e}});
+    });
+    for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);E[dayKey(d)]??=0}
+    HA.energy=E;HA.energyErr=null;
+  }catch(e){HA.energyErr=e.message}
+  $('sDay').textContent=fmtWh(avgDaily());if($('energy').classList.contains('open'))renderEnergy();
+}
+setInterval(loadEnergy,10*60000);
+function renderEnergy(){
+  const E=energyLog(),avg=avgDaily(),today=E[dayKey(Date.now())];
+  $('eAvg').textContent=fmtWh(avg);$('eToday').textContent=fmtWh(today??0);
+  $('eMonth').textContent=avg==null?'—':'$'+(avg*30/1000*S.rate).toFixed(2);
+  $('eRate').value=S.rate;
+  const days=[...Array(14)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return {d,k:dayKey(d),v:E[dayKey(d)]}});
+  const mx=Math.max(1,...days.map(x=>x.v||0),avg||0),W=340,H=150,bw=W/14;
+  const y=v=>H-20-(v/mx)*(H-34);
+  $('eChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily power use, last 14 days">
+    ${days.map((x,i)=>{const today=i===13,v=x.v||0;return `<rect x="${i*bw+3}" y="${y(v)}" width="${bw-6}" height="${Math.max(0,H-20-y(v))}" rx="4" fill="${today?'var(--accent)':'color-mix(in srgb,var(--accent) 45%,var(--card2))'}"><title>${x.d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}: ${fmtWh(x.v)}${today?' (so far)':''}</title></rect>
+      <text x="${i*bw+bw/2}" y="${H-5}" text-anchor="middle" font-size="9" fill="var(--muted)">${x.d.toLocaleDateString(undefined,{weekday:'narrow'})}</text>`}).join('')}
+    ${avg!=null?`<line x1="0" x2="${W}" y1="${y(avg)}" y2="${y(avg)}" stroke="var(--text)" stroke-dasharray="4 4" opacity=".55"/><text x="${W-2}" y="${y(avg)-4}" text-anchor="end" font-size="10" fill="var(--text)" opacity=".75">avg ${fmtWh(avg)}</text>`:''}
+  </svg>`;
+  $('eNote').textContent=HA.live?(HA.energyErr?`Couldn't load history from Home Assistant (${HA.energyErr}).`:"Estimated from Home Assistant's history of when each light was on and how bright, times each bulb's wattage. Set the wattage on each light for better numbers.")
+    :'Demo mode: past days are simulated. Today counts while this page is open.';
+  const using=LIGHTS().filter(l=>powerOf(l)>0).sort((a,b)=>powerOf(b)-powerOf(a));
+  $('eList').innerHTML=using.length?using.map(l=>`<div class="erow" data-id="${esc(l.id)}"><span>${esc(l.name)}<br><small>${esc(roomOf(l))} · ${wOf(l)} W bulb at ${l.canDim?l.b:100}%</small></span><b>${fmtW(powerOf(l))}</b></div>`).join(''):'<p class="help">No lights are on.</p>';
+}
+function openEnergy(){renderEnergy();$('energy').classList.add('open');$('backdrop').classList.add('open')}
+document.querySelectorAll('[data-energy]').forEach(el=>el.onclick=openEnergy);
+$('energyClose').onclick=closeAll;
+$('eRate').oninput=e=>{const v=parseFloat(e.target.value);if(v>=0){S.rate=v;save();$('eMonth').textContent=avgDaily()==null?'—':'$'+(avgDaily()*30/1000*v).toFixed(2)}};
+$('energy').addEventListener('click',e=>{const r=e.target.closest('[data-id]');if(r){e.stopPropagation();$('energy').classList.remove('open');openSheet(r.dataset.id)}},true);
+let wTimer;
+$('shW').oninput=e=>{if(!cur)return;const v=parseFloat(e.target.value);if(!(v>0))return;targets(cur).forEach(l=>S.watts[l.id]=v);
+  if(!cur.isFx)S.watts[cur.id]=v;save();$('sW').textContent=fmtW(powerNow());clearTimeout(wTimer);wTimer=setTimeout(()=>{if(HA.live)loadEnergy()},1500)};
+
+// ---------- presets ----------
+const snap=l=>({on:l.on,b:l.b,mode:l.mode,t:l.t,color:l.color});
+function capture(room,withOff){const st={};LIGHTS().filter(l=>inRoom(l,room)&&(withOff||l.on)).forEach(l=>st[l.id]=snap(l));return st}
+function presetColor(st){const on=Object.entries(st).filter(([,v])=>v.on).map(([id,v])=>{const l=byId(id);return lc({...(l||CAPS),...v,canColor:l?l.canColor:true})});
+  if(!on.length)return '#555a66';let r=0,g=0,b=0;on.forEach(h=>{r+=parseInt(h.slice(1,3),16);g+=parseInt(h.slice(3,5),16);b+=parseInt(h.slice(5,7),16)});
+  const c=v=>Math.round(v/on.length).toString(16).padStart(2,'0');return '#'+c(r)+c(g)+c(b)}
+function pCountText(){const room=$('pRoom').value,ls=LIGHTS().filter(l=>inRoom(l,room)),on=ls.filter(l=>l.on).length;
+  $('pCount').textContent=`Will save ${$('pOff').checked?ls.length:on} light${($('pOff').checked?ls.length:on)===1?'':'s'} (${on} on right now).`}
+function renderPresets(){
+  $('pList').innerHTML=S.presets.length?S.presets.map(p=>{const n=Object.keys(p.states).length,on=Object.values(p.states).filter(v=>v.on).length;return `<div class="roomRow">
+    <span class="dot" style="background:${p.color};width:16px;height:16px;flex:none"></span>
+    <input value="${esc(p.name)}" data-pren="${p.id}" maxlength="24" aria-label="Preset name">
+    <small style="width:auto">${esc(p.room==='All'?'Home':p.room)} · ${on}/${n} on</small>
+    <button class="iconbtn" data-pupd="${p.id}" title="Update with current lights" aria-label="Update with current lights">⟳</button>
+    <button class="iconbtn" data-pdel="${p.id}" aria-label="Delete preset">×</button></div>`}).join(''):'<p class="help" style="margin-top:0">No presets yet.</p>';
+}
+function openPresets(){
+  $('pRoom').innerHTML=rooms().map(r=>`<option value="${esc(r)}" ${r===S.room?'selected':''}>${r==='All'?'Whole home':esc(r)}</option>`).join('');
+  $('pName').value='';pCountText();renderPresets();$('presetSh').classList.add('open');$('backdrop').classList.add('open');
+}
+$('presetClose').onclick=closeAll;
+$('pRoom').onchange=pCountText;$('pOff').onchange=pCountText;
+$('presetForm').onsubmit=e=>{e.preventDefault();const room=$('pRoom').value,st=capture(room,$('pOff').checked);
+  if(!Object.keys(st).length){toast('No lights to save — turn some on first');return}
+  const p={id:Date.now().toString(36),name:$('pName').value.trim(),room,states:st,color:presetColor(st)};
+  S.presets.unshift(p);S.scene='p:'+p.id;$('pName').value='';render();$('scenes').scrollLeft=0;renderPresets();toast(`${p.name} saved`)};
+$('presetSh').addEventListener('click',e=>{
+  const u=e.target.closest('[data-pupd]'),d=e.target.closest('[data-pdel]');
+  if(u){const p=S.presets.find(x=>x.id===u.dataset.pupd);const withOff=Object.values(p.states).some(v=>!v.on)||Object.keys(p.states).length===LIGHTS().filter(l=>inRoom(l,p.room)).length;
+    p.states=capture(p.room,withOff);p.color=presetColor(p.states);render();renderPresets();toast(`${p.name} updated`)}
+  if(d){const p=S.presets.find(x=>x.id===d.dataset.pdel);S.presets=S.presets.filter(x=>x!==p);
+    const n=S.schedules.filter(s=>s.action==='p:'+p.id).length;S.schedules=S.schedules.filter(s=>s.action!=='p:'+p.id);
+    if(S.scene==='p:'+p.id)S.scene=null;render();renderPresets();toast(`${p.name} deleted${n?` (and ${n} schedule${n>1?'s':''})`:''}`)}
+});
+$('presetSh').addEventListener('change',e=>{const i=e.target.closest('[data-pren]');if(!i)return;const p=S.presets.find(x=>x.id===i.dataset.pren),v=i.value.trim();if(v){p.name=v;render();toast('Renamed')}else i.value=p.name});
+
+// ---------- group editor ----------
+let editFx=null;
+function openFxEd(fx,preselect,room){
+  editFx=fx||null;
+  $('fxEdTitle').textContent=fx?'Edit light group':'New light group';
+  $('fxName').value=fx?fx.name:'';$('fxDel').hidden=!fx;
+  const rm=fx?fx.room:(room||(S.room!=='All'?S.room:roomList()[0]));
+  $('fxRoom').innerHTML=roomList().map(r=>`<option ${r===rm?'selected':''}>${esc(r)}</option>`).join('');
+  const sel=new Set((fx?fx.members:preselect||[]).map(String));
+  const ls=[...LIGHTS()].sort((a,b)=>(roomOf(a)===rm?0:1)-(roomOf(b)===rm?0:1)||roomOf(a).localeCompare(roomOf(b))||a.name.localeCompare(b.name));
+  $('fxPick').innerHTML=ls.map(l=>{const other=fxOf(l.id);const dis=other&&other!==fx;
+    return `<label class="pick ${dis?'dis':''}"><input type="checkbox" value="${esc(l.id)}" ${sel.has(String(l.id))?'checked':''} ${dis?'disabled':''}>${esc(l.name)}<small>${dis?'in '+esc(other.name):esc(roomOf(l))}</small></label>`}).join('');
+  ['sheet','disp'].forEach(i=>$(i).classList.remove('open'));cur=null;
+  $('fxEd').classList.add('open');$('backdrop').classList.add('open');
+}
+$('fxBtn').onclick=()=>{if(!cur)return;if(cur.isFx)return openFxEd(cur.fx);const f=fxOf(cur.id);f?openFxEd(f):openFxEd(null,[cur.id],roomOf(cur))};
+$('fxEdClose').onclick=closeAll;
+$('hideBtn').onclick=()=>{if(!cur||cur.isFx)return;const n=cur.name;S.hidden[String(cur.id)]=n;closeAll();render();toast(`${n} hidden — restore it in Settings`)};
+$('fxForm').onsubmit=e=>{e.preventDefault();
+  const ids=[...$('fxPick').querySelectorAll('input:checked')].map(i=>{const l=byId(i.value);return l?l.id:i.value});
+  if(ids.length<2){toast('Pick at least 2 lights');return}
+  const name=$('fxName').value.trim(),room=$('fxRoom').value;
+  const f=editFx||{id:'fx_'+Date.now()};Object.assign(f,{name,room,members:ids});
+  if(!editFx)S.fixtures.push(f);
+  ids.forEach(id=>S.roomMap[id]=room);
+  closeAll();render();toast(`${name} saved — ${ids.length} lights`)};
+$('fxDel').onclick=()=>{if(!editFx)return;S.fixtures=S.fixtures.filter(f=>f!==editFx);toast(`${editFx.name} ungrouped`);closeAll();render()};
+
+// ---------- add lights ----------
+const BRANDS=[
+  ['tuya','Gosund / GHome / Smart Life','Tuya-based bulbs, strips, plugs and switches'],
+  ['matter','Matter','Any Matter-certified light (pair it in the Home Assistant phone app)'],
+  ['hue','Philips Hue','Bridge — press its button when asked'],
+  ['wiz','WiZ','Wi-Fi bulbs on your network'],
+  ['tplink','TP-Link Kasa / Tapo','Wi-Fi bulbs, plugs and strips'],
+  ['govee_light_local','Govee','Local control (turn on LAN in the bulb settings)'],
+  ['lifx','LIFX','Wi-Fi bulbs'],
+  ['yeelight','Yeelight','Wi-Fi bulbs'],
+  ['nanoleaf','Nanoleaf','Panels and bulbs'],
+  ['shelly','Shelly','Relays, dimmers and bulbs'],
+  ['esphome','ESPHome','DIY or re-flashed devices'],
+  ['zha','Zigbee (ZHA)','Zigbee bulbs like IKEA, Sengled, Innr — needs a Zigbee USB stick'],
+  ['switchbot','SwitchBot','Bulbs, strips and plugs'],
+  ['tasmota','Tasmota','Re-flashed bulbs and plugs'],
+];
+const brandName=h=>(BRANDS.find(b=>b[0]===h)||[,h])[1];
+let WS=null,FLOW=null,TR={},flowPoll=null;
+function haWS(){
+  if(WS&&WS.ready)return Promise.resolve(WS);
+  return new Promise((res,rej)=>{
+    const ws=new WebSocket(S.ha.url.replace(/^http/,'ws').replace(/\/$/,'')+'/api/websocket');
+    let id=1;const pend={};
+    const api={ready:false,call:(type,data={})=>new Promise((ok,no)=>{const i=id++;pend[i]={ok,no};ws.send(JSON.stringify({id:i,type,...data}))})};
+    ws.onmessage=e=>{const m=JSON.parse(e.data);
+      if(m.type==='auth_required')ws.send(JSON.stringify({type:'auth',access_token:S.ha.token}));
+      else if(m.type==='auth_ok'){api.ready=true;WS=api;res(api)}
+      else if(m.type==='auth_invalid')rej(new Error('Token was rejected.'));
+      else if(m.type==='result'&&pend[m.id]){m.success?pend[m.id].ok(m.result):pend[m.id].no(new Error(m.error?.message||'Request failed'));delete pend[m.id]}};
+    ws.onerror=()=>rej(new Error("Couldn't open a live connection to Home Assistant."));
+    ws.onclose=()=>{if(WS===api)WS=null};
+  });
+}
+async function loadTR(h){
+  if(TR[h])return TR[h];
+  try{const w=await haWS();TR[h]=(await w.call('frontend/get_translations',{language:'en',category:'config',integration:[h]})).resources||{}}catch(e){TR[h]={}}
+  return TR[h];
+}
+const tr=(h,path)=>TR[h]?.[`component.${h}.config.${path}`];
+const body=html=>{$('addBody').innerHTML=html};
+const spinner=t=>`<p class="fdesc"><span class="spin"></span>${esc(t)}</p>`;
+
+function openAdd(){
+  $('addTitle').textContent='Add a light';
+  $('add').classList.add('open');$('backdrop').classList.add('open');
+  HA.live?addHome():demoAdd();
+}
+function demoAdd(){
+  body(`<p class="fdesc">You're in demo mode, so this adds a simulated light. To pair real lights, connect Lumen to Home Assistant with the link icon.</p>
+  <form class="form" id="demoForm" style="margin-top:14px">
+    <input id="dName" placeholder="Light name, e.g. Desk Lamp" required maxlength="30">
+    <select id="dRoom">${roomList().map(r=>`<option ${r===S.room?'selected':''}>${esc(r)}</option>`).join('')}</select>
+    <select id="dBrand"><option>Gosund</option><option>GHome</option><option>Other</option></select>
+    <select id="dType"><option value="color">Color bulb</option><option value="white">White (adjustable warmth)</option><option value="dim">Dimmable only</option><option value="onoff">On / off only</option></select>
+    <button class="primary">Add light</button>
+  </form>`);
+  $('demoForm').onsubmit=e=>{e.preventDefault();const t=$('dType').value;
+    const l=D(Date.now(),$('dName').value.trim(),$('dRoom').value,true,80,t==='color'?'color':'white',3000,'#ffc857',8,$('dBrand').value);
+    Object.assign(l,{canColor:t==='color',canTemp:t==='color'||t==='white',canDim:t!=='onoff'});
+    S.lights.push(l);render();closeAll();toast(`${l.name} added`)};
+}
+async function addHome(){
+  FLOW=null;$('addTitle').textContent='Add a light';
+  body(`<h2 style="margin-top:4px">Found on your network</h2><div id="found">${spinner('Looking for new devices…')}</div>
+    <h2>Add by brand</h2>${BRANDS.map(([h,n,d])=>`<button class="item" data-handler="${h}"><span class="badge">${n[0]}</span><span>${esc(n)}<small>${esc(d)}</small></span><span class="go">›</span></button>`).join('')}
+    <form class="roomRow" id="otherForm" style="margin-top:6px"><input id="otherH" placeholder="Other integration, e.g. elgato" autocapitalize="off"><button class="ghost" style="padding:9px 14px">Add</button></form>`);
+  $('otherForm').onsubmit=e=>{e.preventDefault();const h=$('otherH').value.trim().toLowerCase().replace(/\s+/g,'_');if(h)startFlow(h)};
+  try{
+    const w=await haWS();
+    const fl=(await w.call('config_entries/flow/progress')).filter(f=>f.context?.source&&f.context.source!=='user');
+    await Promise.all([...new Set(fl.map(f=>f.handler))].map(loadTR));
+    if(!$('found'))return;
+    $('found').innerHTML=fl.length?fl.map(f=>{const nm=f.context.title_placeholders?.name||brandName(f.handler);
+      return `<button class="item" data-flow="${esc(f.flow_id)}" data-h="${esc(f.handler)}"><span class="badge">+</span><span>${esc(nm)}<small>${esc(brandName(f.handler))} · discovered</small></span><span class="go">Add</span></button>`}).join('')
+      :`<p class="fdesc">No new devices found. Make sure the light is powered on and on the same Wi-Fi network, or add it by brand below. <a href="#" id="rescan">Scan again</a></p>`;
+  }catch(e){if($('found'))$('found').innerHTML=`<p class="fdesc" style="color:var(--bad)">${esc(e.message)}</p>`}
+}
+async function startFlow(h,existing){
+  FLOW={id:existing,handler:h,started:!existing,before:new Set(HA.lights.map(l=>l.id))};
+  $('addTitle').textContent=brandName(h);body(spinner('Contacting Home Assistant…'));
+  try{
+    await loadTR(h);
+    const step=existing?await haFetch('/api/config/config_entries/flow/'+existing)
+      :await haFetch('/api/config/config_entries/flow',{handler:h,show_advanced_options:false});
+    FLOW.id=step.flow_id;showStep(step);
+  }catch(e){body(`<p class="fdesc" style="color:var(--bad)">${esc(/40[04]/.test(e.message)?`Home Assistant doesn't have an integration called "${h}".`:e.message)}</p><div class="btnrow"><button class="ghost" data-back>Back</button></div>`);FLOW=null}
+}
+function descHTML(h,step){
+  let d=tr(h,`step.${step.step_id}.description`)||'';
+  const ph=step.description_placeholders||{};
+  d=d.replace(/\{(\w+)\}/g,(m,k)=>ph[k]??m);
+  if(!d)d=Object.values(ph).filter(v=>typeof v==='string').join('\n');
+  const imgs=[...d.matchAll(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/g)].map(m=>m[0]);
+  d=d.replace(/!\[[^\]]*\]\([^)]*\)|<img[^>]*>/g,'').replace(/<[^>]+>/g,'').replace(/\*\*/g,'');
+  let out=esc(d.trim()).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return (out?`<p class="fdesc">${out}</p>`:'')+imgs.map(s=>`<img class="qr" src="${s}" alt="QR code">`).join('');
+}
+function fieldHTML(h,step,f){
+  const lbl=esc(tr(h,`step.${step.step_id}.data.${f.name}`)||f.name.replace(/_/g,' ').replace(/^\w/,c=>c.toUpperCase()));
+  const sel=f.selector||{};const def=f.default??(f.description?.suggested_value)??'';
+  const nm=`data-f="${esc(f.name)}" ${f.required?'required':''}`;
+  let opts=f.options||sel.select?.options;
+  if(opts){opts=(Array.isArray(opts)?opts:Object.entries(opts)).map(o=>Array.isArray(o)?o:typeof o==='object'?[o.value,o.label]:[o,o]);
+    return `<label>${lbl}</label><select ${nm}>${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===def?'selected':''}>${esc(t)}</option>`).join('')}</select>`}
+  if(f.type==='boolean'||sel.boolean)return `<label class="chk"><input type="checkbox" data-f="${esc(f.name)}" data-bool ${def?'checked':''}>${lbl}</label>`;
+  if(f.type==='constant')return '';
+  const num=f.type==='integer'||f.type==='float'||sel.number;
+  const pw=sel.text?.type==='password'||/password|token|key/i.test(f.name);
+  return `<label>${lbl}${f.required?'':' <output>optional</output>'}</label><input class="finput" ${nm} ${num?'type="number" step="any" data-num':pw?'type="password"':'type="text"'} value="${esc(def)}" autocomplete="off" autocapitalize="off">`;
+}
+function showStep(step){
+  clearTimeout(flowPoll);const h=FLOW.handler;
+  const title=tr(h,`step.${step.step_id}.title`);if(title)$('addTitle').textContent=title.replace(/\{(\w+)\}/g,(m,k)=>step.description_placeholders?.[k]??m);
+  if(step.type==='form'){
+    const errs=Object.values(step.errors||{}).map(c=>tr(h,`error.${c}`)||c.replace(/_/g,' '));
+    body(`${descHTML(h,step)}${errs.length?`<p class="msg err">${esc(errs.join(' '))}</p>`:''}
+      <form class="form" id="flowForm">${(step.data_schema||[]).map(f=>fieldHTML(h,step,f)).join('')}
+      <div class="btnrow"><button type="button" class="ghost" data-back>Cancel</button><button class="primary">${(step.data_schema||[]).length?'Continue':'Submit'}</button></div></form>`);
+    $('flowForm').onsubmit=e=>{e.preventDefault();const data={};
+      $('flowForm').querySelectorAll('[data-f]').forEach(el=>{
+        if(el.dataset.bool!==undefined)data[el.dataset.f]=el.checked;
+        else if(el.value!==''){data[el.dataset.f]=el.dataset.num!==undefined?Number(el.value):el.value}});
+      submitStep(data)};
+  }else if(step.type==='menu'){
+    const mo=Array.isArray(step.menu_options)?step.menu_options.map(o=>[o,o]):Object.entries(step.menu_options);
+    body(descHTML(h,step)+mo.map(([k,l])=>`<button class="item" data-next="${esc(k)}">${esc(tr(h,`step.${step.step_id}.menu_options.${k}`)||l)}<span class="go">›</span></button>`).join('')+`<div class="btnrow"><button class="ghost" data-back>Cancel</button></div>`);
+  }else if(step.type==='external'){
+    body(`${descHTML(h,step)}<p class="fdesc">This brand needs you to sign in on its website.</p><div class="btnrow"><a class="primary" style="text-align:center;text-decoration:none" href="${esc(step.url)}" target="_blank" rel="noopener">Open sign-in</a></div><div class="btnrow"><button class="ghost" data-back>Cancel</button><button class="ghost" data-recheck>I've signed in</button></div>`);
+  }else if(step.type==='progress'){
+    body(descHTML(h,step)+spinner('Working… this can take a minute.'));
+    flowPoll=setTimeout(async()=>{try{showStep(await haFetch('/api/config/config_entries/flow/'+FLOW.id))}catch(e){}},2000);
+  }else if(step.type==='create_entry'){
+    FLOW.done=true;body(spinner('Connected! Loading your new lights…'));findNew();
+  }else if(step.type==='abort'){
+    FLOW.done=true;const r=step.reason;
+    const msg=r==='single_instance_allowed'||r==='already_configured'?`${brandName(h)} is already connected. Any lights you add to that account appear in Lumen automatically.`
+      :(tr(h,`abort.${r}`)||r.replace(/_/g,' ')).replace(/\{(\w+)\}/g,(m,k)=>step.description_placeholders?.[k]??m);
+    body(`<p class="fdesc">${esc(msg)}</p><div class="btnrow"><button class="ghost" data-back>Back</button></div>`);
+  }
+}
+async function submitStep(data){
+  body(spinner('Working…'));
+  try{showStep(await haFetch('/api/config/config_entries/flow/'+FLOW.id,data))}
+  catch(e){body(`<p class="fdesc" style="color:var(--bad)">${esc(e.message)}</p><div class="btnrow"><button class="ghost" data-back>Back</button></div>`)}
+}
+async function findNew(){
+  let added=[];const before=FLOW.before;
+  for(let i=0;i<6&&!added.length;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    try{await loadMeta();await pull()}catch(e){}
+    added=HA.lights.filter(l=>!before.has(l.id));
+  }
+  if(!$('add').classList.contains('open')){render();if(added.length)toast(`Added ${added.length} new light${added.length>1?'s':''}`);return}
+  FLOW=null;render();
+  if(!added.length){body(`<p class="fdesc">Connected, but no new lights showed up yet. They usually appear within a minute.</p><div class="btnrow"><button class="primary" data-closeadd>Done</button></div>`);return}
+  body(`<p class="msg ok">Added ${added.length} light${added.length>1?'s':''}. Pick a room for each:</p>
+    ${added.map(l=>`<label>${esc(l.name)}</label><select data-newroom="${esc(l.id)}">${roomList().map(r=>`<option ${r===roomOf(l)?'selected':''}>${esc(r)}</option>`).join('')}</select>`).join('')}
+    <div class="btnrow"><button class="primary" data-closeadd>Done</button></div>`);
+  added.forEach(l=>document.querySelector(`.light[data-id="${CSS.escape(l.id)}"],.light[data-tile="${CSS.escape(l.id)}"]`)?.classList.add('newlight'));
+}
+function abortFlow(){clearTimeout(flowPoll);if(FLOW&&FLOW.id&&FLOW.started&&!FLOW.done){fetch(S.ha.url.replace(/\/$/,'')+'/api/config/config_entries/flow/'+FLOW.id,{method:'DELETE',headers:{Authorization:'Bearer '+S.ha.token}}).catch(()=>{})}FLOW=null}
+$('addLightBtn').onclick=openAdd;
+$('addClose').onclick=closeAll;
+$('add').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.closest('#rescan')){e.preventDefault();addHome();return}
+  const hb=t.closest('[data-handler]');if(hb)return startFlow(hb.dataset.handler);
+  const fb=t.closest('[data-flow]');if(fb){FLOW={handler:fb.dataset.h};return startFlow(fb.dataset.h,fb.dataset.flow)}
+  const nx=t.closest('[data-next]');if(nx)return submitStep({next_step_id:nx.dataset.next});
+  if(t.closest('[data-recheck]'))return haFetch('/api/config/config_entries/flow/'+FLOW.id).then(showStep).catch(()=>toast('Not finished yet'));
+  if(t.closest('[data-back]')){abortFlow();return addHome()}
+  if(t.closest('[data-closeadd]'))return closeAll();
+});
+$('add').addEventListener('change',e=>{const s=e.target.closest('[data-newroom]');if(s){S.roomMap[s.dataset.newroom]=s.value;render()}});
+$('shRoomSel').onchange=e=>{if(!cur)return;const v=e.target.value;if(cur.isFx){const f=cur.fx;f.room=v;f.members.forEach(m=>S.roomMap[m]=v)}else{S.roomMap[cur.id]=v;const f=fxOf(cur.id);if(f){f.room=v;f.members.forEach(m=>S.roomMap[m]=v)}}render();toast(`${cur.name} moved to ${e.target.value}`)};
+$('addSched').onclick=()=>{$('schedForm').hidden=!$('schedForm').hidden};
+$('schedForm').onsubmit=e=>{e.preventDefault();S.schedules.push({time:$('fTime').value,room:$('fRoom').value,action:$('fAction').value,en:true});S.schedules.sort((a,b)=>a.time.localeCompare(b.time));$('schedForm').hidden=true;render();toast('Schedule added')};
+
+let lastMin='';
+setInterval(()=>{const hm=new Date().toTimeString().slice(0,5);if(hm===lastMin)return;lastMin=hm;
+  S.schedules.filter(s=>s.en&&s.time===hm).forEach(s=>{
+    if(s.action==='on'||s.action==='off'){stopParty();const ls=LIGHTS().filter(l=>inRoom(l,s.room));ls.forEach(l=>l.on=s.action==='on');push(...ls);render();toast(`Schedule: ${s.room} ${s.action}`)}
+    else applyScene(s.action,s.room);
+  })},5000);
+
+applyLook();render();
+if(S.ha.use&&S.ha.url&&S.ha.token)connect(true);
+</script>
+</body>
+</html>
