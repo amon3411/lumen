@@ -1,10 +1,9 @@
-**Lumen** — smart light control for Home Assistant, as an Android app.
+**Lumen** — smart home control for Home Assistant, as an Android app.
 
-**New in 1.0.1**
-- Swipe down on a light's panel (or any settings panel) to close it.
-- The Android back button now closes an open panel instead of leaving the app.
+**New in 1.1.0: Media tab**
+- **Sonos speakers:** see what's playing with artwork, play/pause, skip, volume, mute and your Sonos favorites.
+- **TVs:** power, volume and a full remote — arrow pad, OK, Back, Home, play/pause — plus one-tap YouTube, Netflix, Prime Video and Disney+.
 
-**About Lumen**
-- Big Google Home–style tiles: tap to switch, slide to dim, colors and white temperature.
-- Rooms, light groups (like a 4-bulb ceiling fan as one tile), scenes and schedules.
-- Works on your home Wi-Fi. Connect with your Home Assistant address and a long-lived access token.
+**Also**
+- Swipe down or press Back to close any panel.
+- Lights: Google Home–style tiles, rooms, light groups, scenes, schedules and themes.

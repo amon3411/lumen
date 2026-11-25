@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="lumen-icon-180.png">
 <link rel="manifest" href="lumen.webmanifest">
 <meta name="theme-color" content="#131316">
-<title>Lumen — Smart Light Control</title>
+<title>Lumen — Smart Home</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--text:#eef0f4;--muted:#8b92a1;--accent:#ffc857;--line:#2a2f3a;--ok:#7bd389;--bad:#ff6b6b}
@@ -244,6 +244,25 @@
   .help ol{padding-left:18px;margin-top:6px} .help li{margin-bottom:4px} .help b{color:var(--text);font-weight:500}
   .msg{font-size:13px;margin-top:10px;min-height:18px}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+  .mcard{background:var(--card);border:1px solid var(--line);border-radius:calc(var(--rad) * .75);padding:14px;margin-bottom:12px}
+  .mcard.na{opacity:.5}
+  .mtop{display:flex;gap:12px;align-items:center}
+  .mart{width:56px;height:56px;border-radius:12px;background:var(--card2);display:grid;place-items:center;flex:none;overflow:hidden;color:var(--muted)}
+  .mart img{width:100%;height:100%;object-fit:cover}
+  .minfo{flex:1;min-width:0}.minfo b{display:block;font-size:15px;font-weight:600}
+  .minfo span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mbtn{background:var(--card2);border:none;color:var(--text);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none}
+  .mbtn.big{width:56px;height:56px;background:var(--accent);color:#1a1a1a}
+  .mbtn.on{background:var(--accent);color:#1a1a1a}
+  .mbtn svg{width:20px;height:20px}
+  .mrow{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:12px}
+  .mrow input[type=range]{flex:1}
+  .mcard select{width:100%;margin-top:12px;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px}
+  .pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,64px);gap:8px;justify-content:center;margin:8px 0 16px}
+  .pad .mbtn{width:64px;height:64px}
+  .pad .ok{background:var(--accent);color:#1a1a1a;font-weight:700}
+  .apps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .mempty{color:var(--muted);font-size:14px;text-align:center;padding:30px 10px}
 </style>
 </head>
 <body>
@@ -284,10 +303,16 @@
 </form>
 </section>
 
+<section id="vMedia" hidden>
+<h2>Speakers &amp; TVs</h2>
+<div id="mediaList"></div>
+</section>
+
 <p class="note" id="note"></p>
 
 <nav class="bnav">
   <button data-view="devices"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></i>Devices</button>
+  <button data-view="media"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></i>Media</button>
   <button data-view="routines"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg></i>Routines</button>
   <button id="dispBtn"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></i>Settings</button>
 </nav>
@@ -410,6 +435,34 @@
   <label>Your presets</label>
   <div id="pList"></div>
 </div>
+<div class="sheet" id="tvSh">
+  <div class="grab"></div>
+  <h3><span id="tvName">TV</span><button class="mbtn" data-rc="power" aria-label="Power"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button></h3>
+  <div class="meta" id="tvMeta"></div>
+  <div class="pad">
+    <span></span><button class="mbtn" data-key="DPAD_UP" aria-label="Up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg></button><span></span>
+    <button class="mbtn" data-key="DPAD_LEFT" aria-label="Left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button>
+    <button class="mbtn ok" data-key="DPAD_CENTER">OK</button>
+    <button class="mbtn" data-key="DPAD_RIGHT" aria-label="Right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button>
+    <span></span><button class="mbtn" data-key="DPAD_DOWN" aria-label="Down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button><span></span>
+  </div>
+  <div class="mrow">
+    <button class="mbtn" data-key="BACK" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button class="mbtn" data-key="HOME" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8M5 10v10h14V10"/></svg></button>
+    <button class="mbtn" data-key="MEDIA_PLAY_PAUSE" aria-label="Play or pause"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l9 8-9 8zM15 5h3v14h-3z"/></svg></button>
+    <button class="mbtn" data-rc="voldown" aria-label="Volume down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM16 12h6"/></svg></button>
+    <button class="mbtn" data-rc="mute" aria-label="Mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6"/></svg></button>
+    <button class="mbtn" data-rc="volup" aria-label="Volume up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM16 12h6M19 9v6"/></svg></button>
+  </div>
+  <h2>Apps</h2>
+  <div class="apps">
+    <button class="ghost" data-app="https://www.youtube.com">YouTube</button>
+    <button class="ghost" data-app="https://www.netflix.com/title">Netflix</button>
+    <button class="ghost" data-app="https://app.primevideo.com">Prime Video</button>
+    <button class="ghost" data-app="https://www.disneyplus.com">Disney+</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -484,7 +537,7 @@ function fromHA(s,prev){
     w:8,canDim,canColor,canTemp,minK:a.min_color_temp_kelvin||2200,maxK:a.max_color_temp_kelvin||6500};
 }
 async function pull(){
-  const st=await haFetch('/api/states');
+  const st=await haFetch('/api/states');HA.all=st;
   const prev=Object.fromEntries(HA.lights.map(l=>[l.id,l]));
   HA.lights=st.filter(s=>s.entity_id.startsWith('light.')||(S.display.switches&&s.entity_id.startsWith('switch.')&&!HA.cfgEnts.has(s.entity_id))).map(s=>fromHA(s,prev[s.entity_id]))
     .sort((a,b)=>a.room.localeCompare(b.room)||a.name.localeCompare(b.name));
@@ -631,7 +684,7 @@ function render(){
   const home=S.look.tiles==='home';
   document.body.className=`size-${Dp.size} layout-${Dp.layout}${Dp.showBrand?'':' hide-brand'} tiles-${home?'home':'cards'} brand-${S.look.preset||'material'}`;
   $('tileHint').hidden=!home;
-  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';
+  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';$('vMedia').hidden=S.view!=='media';renderMedia();
   document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.view));
   $('statsBox').hidden=!Dp.showStats;
   const card=l=>{const c=lc(l);
@@ -699,7 +752,7 @@ function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
 
 // ---------- light sheet ----------
 function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
-function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
+function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
 function renderSheet(){
   const l=cur;$('shName').textContent=l.name;
   const pf=!l.isFx&&fxOf(l.id);
@@ -776,6 +829,105 @@ document.querySelectorAll('.sheet').forEach(sh=>{
   sh.addEventListener('touchend',end);sh.addEventListener('touchcancel',end);
 });
 // Android back button: close an open sheet first
+// ---------- Media: speakers & TVs ----------
+var MP={busy:0,tv:null};
+var IC={
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>',
+  prev:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>',
+  next:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>',
+  vol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg>',
+  muted:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6"/></svg>',
+  power:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>',
+  speaker:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="26" height="26"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/></svg>',
+  tv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="26" height="26"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  remote:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="8" r="2"/><path d="M10 14h.01M14 14h.01M10 17h.01M14 17h.01"/></svg>'
+};
+function mediaDevices(){
+  const st=HA.all||[],rem={};
+  st.filter(s=>s.entity_id.startsWith('remote.')).forEach(r=>rem[r.attributes.friendly_name||r.entity_id]=r);
+  const by={};
+  st.filter(s=>s.entity_id.startsWith('media_player.')).forEach(s=>{
+    const n=s.attributes.friendly_name||s.entity_id;(by[n]=by[n]||[]).push(s)});
+  return Object.entries(by).map(([n,list])=>{
+    const r=rem[n];
+    const key=r&&list.find(s=>s.entity_id.slice(13)===r.entity_id.slice(7));
+    const live=list.filter(s=>s.state!=='unavailable');
+    const s=(key&&key.state!=='unavailable'?key:live[0])||key||list[0];
+    const info=list.find(x=>x.attributes.media_title)||s;
+    const tv=!!r||s.attributes.device_class==='tv';
+    return {n,s,info,remote:r,tv,ids:list.map(x=>x.entity_id)};
+  }).sort((a,b)=>(a.tv-b.tv)||a.n.localeCompare(b.n));
+}
+function mpPic(a){const p=a.entity_picture;if(!p)return '';return p.startsWith('http')?p:S.ha.url.replace(/\/$/,'')+p}
+function renderMedia(){
+  const box=$('mediaList');if(!box||S.view!=='media'||MP.busy)return;
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect Lumen to Home Assistant (link icon) to control your speakers and TVs.</p>';return}
+  const ds=mediaDevices();
+  if(!ds.length){box.innerHTML='<p class="mempty">No speakers or TVs found in Home Assistant.</p>';return}
+  box.innerHTML=ds.map((d,i)=>{
+    const a=d.s.attributes,ia=d.info.attributes,f=a.supported_features||0,na=d.s.state==='unavailable'&&!d.remote,off=['off','standby','unavailable'].includes(d.s.state);
+    const sub=ia.media_title?[ia.media_title,ia.media_artist||ia.media_series_title||ia.app_name].filter(Boolean).join(' · '):(d.s.state==='unavailable'?'Unavailable':(a.app_name||d.s.state.replace('_',' ')));
+    const pic=mpPic(ia);
+    const playing=d.s.state==='playing';
+    let h=`<div class="mcard ${na?'na':''}" data-mi="${i}"><div class="mtop"><div class="mart">${pic?`<img src="${esc(pic)}" alt="" onerror="this.remove()">`:(d.tv?IC.tv:IC.speaker)}</div>
+      <div class="minfo"><b>${esc(d.n)}</b><span>${esc(sub)}</span></div>
+      ${d.tv?`<button class="mbtn" data-m="remote" aria-label="Remote">${IC.remote}</button>`:''}
+      ${(f&384)||d.remote?`<button class="mbtn ${off?'':'on'}" data-m="power" aria-label="Power">${IC.power}</button>`:''}</div>`;
+    if(!off||!d.tv){
+      const ctl=[];
+      if(f&16)ctl.push(`<button class="mbtn" data-m="prev" aria-label="Previous">${IC.prev}</button>`);
+      if(f&(16384|1))ctl.push(`<button class="mbtn big" data-m="playpause" aria-label="Play or pause">${playing?IC.pause:IC.play}</button>`);
+      if(f&32)ctl.push(`<button class="mbtn" data-m="next" aria-label="Next">${IC.next}</button>`);
+      if(ctl.length&&!na)h+=`<div class="mrow">${ctl.join('')}</div>`;
+      if(f&(4|8)&&!na)h+=`<div class="mrow">${f&8?`<button class="mbtn" data-m="mute" aria-label="Mute">${a.is_volume_muted?IC.muted:IC.vol}</button>`:''}${f&4?`<input type="range" min="0" max="100" value="${Math.round((a.volume_level||0)*100)}" data-m="vol">`:''}</div>`;
+      if(f&2048&&(a.source_list||[]).length&&!na)h+=`<select data-m="source"><option value="">${esc(a.source||'Choose a source…')}</option>${a.source_list.map(x=>`<option>${esc(x)}</option>`).join('')}</select>`;
+    }
+    return h+'</div>';
+  }).join('');
+  MP.list=ds;
+}
+async function mpCall(svc,d,data={},domain='media_player'){
+  HA.lastLocal=Date.now();
+  try{await haFetch(`/api/services/${domain}/${svc}`,{entity_id:d,...data})}catch(e){toast("Couldn't reach that device")}
+  setTimeout(async()=>{try{await pull();renderMedia()}catch(e){}},800);
+}
+$('mediaList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-m]');if(!b||b.tagName==='INPUT'||b.tagName==='SELECT')return;
+  const d=MP.list[+b.closest('[data-mi]').dataset.mi],id=d.s.entity_id,a=d.s.attributes;
+  const off=['off','standby','unavailable'].includes(d.s.state);
+  switch(b.dataset.m){
+    case 'playpause':mpCall('media_play_pause',id);break;
+    case 'prev':mpCall('media_previous_track',id);break;
+    case 'next':mpCall('media_next_track',id);break;
+    case 'mute':mpCall('volume_mute',id,{is_volume_muted:!a.is_volume_muted});break;
+    case 'power':if(d.remote)mpCall(off?'turn_on':'turn_off',d.remote.entity_id,{},'remote');else mpCall(off?'turn_on':'turn_off',id);break;
+    case 'remote':openTV(d);break;
+  }
+});
+$('mediaList').addEventListener('pointerdown',e=>{if(e.target.matches('input[type=range]'))MP.busy=1});
+$('mediaList').addEventListener('change',e=>{
+  const t=e.target,mi=t.closest('[data-mi]');if(!mi)return;const d=MP.list[+mi.dataset.mi];
+  if(t.dataset.m==='vol'){MP.busy=0;mpCall('volume_set',d.s.entity_id,{volume_level:+t.value/100})}
+  if(t.dataset.m==='source'&&t.value)mpCall('select_source',d.s.entity_id,{source:t.value});
+});
+addEventListener('pointerup',()=>{if(MP.busy)setTimeout(()=>MP.busy=0,300)});
+function openTV(d){
+  MP.tv=d;$('tvName').textContent=d.n;
+  const ia=d.info.attributes;$('tvMeta').textContent=d.remote?(ia.media_title||ia.app_name||(d.remote.state==='unavailable'?'Unavailable — check the TV is on the network':'')):'This TV has no remote in Home Assistant, so only volume and power work.';
+  $('tvSh').classList.add('open');$('backdrop').classList.add('open');
+}
+$('tvSh').addEventListener('click',e=>{
+  const d=MP.tv;if(!d)return;const b=e.target.closest('[data-key],[data-rc],[data-app]');if(!b)return;
+  if(navigator.vibrate)navigator.vibrate(15);
+  if(b.dataset.key){if(d.remote)mpCall('send_command',d.remote.entity_id,{command:b.dataset.key},'remote');else toast('No remote for this TV');return}
+  if(b.dataset.app){if(d.remote)mpCall('turn_on',d.remote.entity_id,{activity:b.dataset.app},'remote');return}
+  const id=d.s.entity_id,off=['off','standby','unavailable'].includes(d.s.state);
+  ({power:()=>d.remote?mpCall(off?'turn_on':'turn_off',d.remote.entity_id,{},'remote'):mpCall(off?'turn_on':'turn_off',id),
+    volup:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_UP'},'remote'):mpCall('volume_up',id),
+    voldown:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_DOWN'},'remote'):mpCall('volume_down',id),
+    mute:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_MUTE'},'remote'):mpCall('volume_mute',id,{is_volume_muted:!d.s.attributes.is_volume_muted})})[b.dataset.rc]?.();
+});
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
