@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="lumen-icon-180.png">
 <link rel="manifest" href="lumen.webmanifest">
 <meta name="theme-color" content="#131316">
-<title>Lumen Home</title>
+<title>Vesta</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--text:#eef0f4;--muted:#8b92a1;--accent:#ffc857;--line:#2a2f3a;--ok:#7bd389;--bad:#ff6b6b}
@@ -352,7 +352,7 @@
   <div id="whiteBox"><label>Warmth <output id="tempOut"></output></label><input type="range" id="temp" min="2200" max="6500" step="100"></div>
   <div id="colorBox"><label>Color</label><div class="wheelWrap"><canvas id="wheel" width="480" height="480"></canvas><div id="marker"></div></div><div class="hexRow"><span id="hexDot"></span><code id="hexOut"></code></div></div>
   <div id="fxBox"><label>Lights in this group</label><div id="fxMembers"></div></div>
-  <div class="btnrow"><button class="ghost" id="fxBtn">Group with other lights</button><button class="ghost" id="hideBtn">Hide from Lumen</button></div>
+  <div class="btnrow"><button class="ghost" id="fxBtn">Group with other lights</button><button class="ghost" id="hideBtn">Hide from Vesta</button></div>
 </div>
 
 <div class="sheet" id="fxEd">
@@ -371,7 +371,7 @@
 <div class="sheet" id="conn">
   <div class="grab"></div>
   <h3>Connect your lights <button class="x" id="connClose" aria-label="Close">×</button></h3>
-  <p class="help">Lumen works with <b>any light Home Assistant can control</b> — Gosund, GHome, Philips Hue, WiZ, Kasa/Tapo, Govee, LIFX, Matter, Zigbee and 1,000+ more brands. Every light added in Home Assistant shows up here automatically.</p>
+  <p class="help">Vesta works with <b>any light Home Assistant can control</b> — Gosund, GHome, Philips Hue, WiZ, Kasa/Tapo, Govee, LIFX, Matter, Zigbee and 1,000+ more brands. Every light added in Home Assistant shows up here automatically.</p>
   <form class="form" id="haForm" style="margin-top:14px">
     <input id="haUrl" placeholder="http://homeassistant.local:8123" autocomplete="off">
     <input id="haToken" type="password" placeholder="Long-lived access token" autocomplete="off">
@@ -383,7 +383,7 @@
     <b>Setup</b>
     <ol>
       <li><b>Gosund &amp; GHome:</b> remove the bulbs from the Gosund app and add them in the <b>Smart Life</b> app. Then in Home Assistant go to Settings → Devices &amp; services → Add integration → <b>Tuya</b> and scan the QR code with Smart Life.</li>
-      <li><b>Other brands from Google Home:</b> in the Google Home app open Settings → Works with Google to see which brands you use. Add each one with Lumen's <b>+ Add light</b> button (or in Home Assistant). Google Home keeps working alongside Lumen.</li>
+      <li><b>Other brands from Google Home:</b> in the Google Home app open Settings → Works with Google to see which brands you use. Add each one with Vesta's <b>+ Add light</b> button (or in Home Assistant). Google Home keeps working alongside Vesta.</li>
       <li><b>Lamps on smart plugs or wall switches:</b> turn on <b>Include plugs &amp; switches</b> in Settings.</li>
       <li>Create a token: your Home Assistant profile → Security → <b>Long-lived access tokens</b>.</li>
       <li>Copy this file to Home Assistant's <code>config/www/</code> folder and open <code>http://YOUR-HA:8123/local/lumen.html</code>. The hosted demo page can't reach your home network.</li>
@@ -606,7 +606,7 @@ async function connect(quiet){
     HA.live=false;
     const blocked=e instanceof TypeError;
     $('haMsg').className='msg err';
-    $('haMsg').textContent=blocked?"Couldn't reach Home Assistant from this page. Open Lumen from your Home Assistant (step 4 below).":e.message;
+    $('haMsg').textContent=blocked?"Couldn't reach Home Assistant from this page. Open Vesta from your Home Assistant (step 4 below).":e.message;
     if(quiet)setStatus('err','Not connected — using demo');
     render();
   }
@@ -631,7 +631,7 @@ const PRESETS=[
   {k:'bridge',n:'Bridge',d:'Rooms as color gradients, lights as colored rows',pv:['#000','#ff8c42','#9b5de5'],look:{theme:'black',accent:'#e8e8e8',tiles:'home',tileColor:'light',corners:'round'},disp:{layout:'list',size:'m',group:'room'}},
   {k:'hub',n:'Hub',d:'Clean white cards with brightness bars',pv:['#f4f5f7','#ffffff','#3695dd'],look:{theme:'hub',accent:'#3695dd',tiles:'home',tileColor:'accent',corners:'round'},disp:{layout:'grid',size:'m'}},
   {k:'echo',n:'Echo',d:'Navy list rows with a glowing edge',pv:['#0d1a28','#1c3249','#00caff'],look:{theme:'echo',accent:'#00caff',tiles:'home',tileColor:'accent',corners:'square'},disp:{layout:'list',size:'m'}},
-  {k:'classic',n:'Classic',d:'The original Lumen glowing cards',pv:['#0f1115','#181b22','#ffc857'],look:{theme:'classic',accent:'#ffc857',tiles:'cards',tileColor:'light',corners:'round'},disp:{layout:'grid',size:'m'}},
+  {k:'classic',n:'Classic',d:'The original Vesta glowing cards',pv:['#0f1115','#181b22','#ffc857'],look:{theme:'classic',accent:'#ffc857',tiles:'cards',tileColor:'light',corners:'round'},disp:{layout:'grid',size:'m'}},
 ];
 const THEMES=[['system','System',['#131316','#f2f3f8']],['dark','Dark',['#131316','#2a2b30']],['light','Light',['#f2f3f8','#ffffff']],['black','Black',['#000000','#1b1c1f']],['ocean','Ocean',['#0b1622','#1a2d3e']],['forest','Forest',['#101712','#223026']],['classic','Classic',['#0f1115','#ffc857']],['glass','Glass',['#6b3f6a','#e6a15a']],['hub','Hub',['#f4f5f7','#3695dd']],['echo','Echo',['#0d1a28','#00caff']]];
 const ACCENTS=['#f7c948','#3695dd','#00caff','#ff9f0a','#8ab4f8','#81c995','#f28b82','#c58af9','#78d9ec','#fcad70'];
@@ -891,7 +891,7 @@ function mediaDevices(){
 function mpPic(a){const p=a.entity_picture;if(!p)return '';return p.startsWith('http')?p:S.ha.url.replace(/\/$/,'')+p}
 function renderMedia(){
   const box=$('mediaList');if(!box||S.view!=='media'||MP.busy)return;
-  if(!HA.live){box.innerHTML='<p class="mempty">Connect Lumen to Home Assistant (link icon) to control your speakers and TVs.</p>';return}
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect Vesta to Home Assistant (link icon) to control your speakers and TVs.</p>';return}
   const ds=mediaDevices();
   if(!ds.length){box.innerHTML='<p class="mempty">No speakers or TVs found in Home Assistant.</p>';return}
   box.innerHTML=ds.map((d,i)=>{
@@ -1006,6 +1006,17 @@ function renderNet(){
   ${people.length?'<h2>Who\'s home</h2>'+people.map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':esc(p.state)}</span></div>`).join(''):''}`;
 }
 
+// ---------- resync with Home Assistant every time the app opens ----------
+var RS={at:0};
+window.lumenResync=async()=>{
+  if(Date.now()-RS.at<1500||!(S.ha.use&&S.ha.url&&S.ha.token))return;RS.at=Date.now();
+  try{if(WS){try{WS.close&&WS.close()}catch(e){}}WS=null}catch(e){}
+  if(!HA.live)return connect(true);
+  setStatus('','Syncing…');
+  try{await haFetch('/api/');await loadMeta();await pull();render();setStatus('live','Home Assistant')}
+  catch(e){HA.live=false;connect(true)}
+};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)lumenResync()});
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
@@ -1024,7 +1035,7 @@ function renderDisp(){
     <button class="iconbtn" data-up="${i}" ${i?'':'disabled style="opacity:.3"'} aria-label="Move up">↑</button>
     <button class="iconbtn" data-del="${esc(r)}" aria-label="Delete room">×</button></div>`}).join('');
   const hid=Object.entries(S.hidden);
-  $('hiddenList').innerHTML=hid.length?hid.map(([id,n])=>`<div class="roomRow"><span style="flex:1;font-size:14px">${esc(n)}</span><button class="ghost" style="padding:7px 12px" data-unhide="${esc(id)}">Show</button></div>`).join(''):'<p class="help" style="margin-top:0">Nothing hidden. Open a device and tap “Hide from Lumen” to tuck it away.</p>';
+  $('hiddenList').innerHTML=hid.length?hid.map(([id,n])=>`<div class="roomRow"><span style="flex:1;font-size:14px">${esc(n)}</span><button class="ghost" style="padding:7px 12px" data-unhide="${esc(id)}">Show</button></div>`).join(''):'<p class="help" style="margin-top:0">Nothing hidden. Open a device and tap “Hide from Vesta” to tuck it away.</p>';
 }
 $('dispBtn').onclick=()=>{renderLook();renderDisp();$('disp').classList.add('open');$('backdrop').classList.add('open')};
 $('dispClose').onclick=closeAll;
@@ -1261,7 +1272,7 @@ function haWS(){
   return new Promise((res,rej)=>{
     const ws=new WebSocket(S.ha.url.replace(/^http/,'ws').replace(/\/$/,'')+'/api/websocket');
     let id=1;const pend={};
-    const api={ready:false,call:(type,data={})=>new Promise((ok,no)=>{const i=id++;pend[i]={ok,no};ws.send(JSON.stringify({id:i,type,...data}))})};
+    const api={ready:false,close:()=>ws.close(),call:(type,data={})=>new Promise((ok,no)=>{const i=id++;pend[i]={ok,no};ws.send(JSON.stringify({id:i,type,...data}))})};
     ws.onmessage=e=>{const m=JSON.parse(e.data);
       if(m.type==='auth_required')ws.send(JSON.stringify({type:'auth',access_token:S.ha.token}));
       else if(m.type==='auth_ok'){api.ready=true;WS=api;res(api)}
@@ -1286,7 +1297,7 @@ function openAdd(){
   HA.live?addHome():demoAdd();
 }
 function demoAdd(){
-  body(`<p class="fdesc">You're in demo mode, so this adds a simulated light. To pair real lights, connect Lumen to Home Assistant with the link icon.</p>
+  body(`<p class="fdesc">You're in demo mode, so this adds a simulated light. To pair real lights, connect Vesta to Home Assistant with the link icon.</p>
   <form class="form" id="demoForm" style="margin-top:14px">
     <input id="dName" placeholder="Light name, e.g. Desk Lamp" required maxlength="30">
     <select id="dRoom">${roomList().map(r=>`<option ${r===S.room?'selected':''}>${esc(r)}</option>`).join('')}</select>
@@ -1373,7 +1384,7 @@ function showStep(step){
     FLOW.done=true;body(spinner('Connected! Loading your new lights…'));findNew();
   }else if(step.type==='abort'){
     FLOW.done=true;const r=step.reason;
-    const msg=r==='single_instance_allowed'||r==='already_configured'?`${brandName(h)} is already connected. Any lights you add to that account appear in Lumen automatically.`
+    const msg=r==='single_instance_allowed'||r==='already_configured'?`${brandName(h)} is already connected. Any lights you add to that account appear in Vesta automatically.`
       :(tr(h,`abort.${r}`)||r.replace(/_/g,' ')).replace(/\{(\w+)\}/g,(m,k)=>step.description_placeholders?.[k]??m);
     body(`<p class="fdesc">${esc(msg)}</p><div class="btnrow"><button class="ghost" data-back>Back</button></div>`);
   }

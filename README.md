@@ -1,4 +1,4 @@
-# Lumen Home
+# Vesta
 
 Smart home control for Home Assistant (lights, Sonos speakers, TVs, cameras and network), packaged as an Android app.
 
