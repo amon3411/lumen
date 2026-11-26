@@ -1,7 +1,7 @@
 {
   "name": "Vesta",
   "short_name": "Vesta",
-  "start_url": "lumen.html",
+  "start_url": "vesta.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#131316",
