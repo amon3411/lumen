@@ -1,4 +1,4 @@
-**Vesta 1.4.0 — a much bigger Network tab**
+**Vesta 1.4.1 — a much bigger Network tab**
 
 - **Open Deco app** button, right at the top.
 - **Speeds:** live download and upload with packets per second, plus 24-hour graphs with the peak speed.
