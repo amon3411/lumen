@@ -7,8 +7,8 @@ android {
         applicationId = "com.amon3411.lumen"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 6
+        versionName = "1.3.1"
     }
     sourceSets["main"].assets.srcDirs("../web")
     signingConfigs {

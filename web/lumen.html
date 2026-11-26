@@ -538,7 +538,7 @@ let cur=null,partyTimer=null;
 
 // ---------- Home Assistant ----------
 const HA={cfgEnts:new Set(),live:false,lights:[],meta:{},lastLocal:0,timers:{},poll:null,dragging:false};
-const LIGHTS=()=>(HA.live?HA.lights:S.lights).filter(l=>!(String(l.id) in S.hidden));
+const LIGHTS=()=>(HA.live||S.ha.use?HA.lights:S.lights).filter(l=>!(String(l.id) in S.hidden));
 async function haFetch(path,body,text){
   const r=await fetch(S.ha.url.replace(/\/$/,'')+path,{method:body?'POST':'GET',
     headers:{Authorization:'Bearer '+S.ha.token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
@@ -573,7 +573,7 @@ async function pull(){
   if(cur&&!cur.isFx)cur=HA.lights.find(l=>l.id===cur.id)||null;
 }
 function push(...ls){
-  if(!HA.live)return;HA.lastLocal=Date.now();
+  if(!HA.live){if(S.ha.use)toast("Offline — can't reach Home Assistant");return}HA.lastLocal=Date.now();
   ls.forEach(l=>{clearTimeout(HA.timers[l.id]);HA.timers[l.id]=setTimeout(()=>send(l),180)});
 }
 async function send(l){
@@ -585,7 +585,10 @@ async function send(l){
     if(l.mode==='color'&&l.canColor){const[h,s]=hexToHs(l.color);d.hs_color=[Math.round(h),Math.round(s*100)]}
     else if(l.canTemp)d.color_temp_kelvin=Math.min(l.maxK,Math.max(l.minK,l.t));
     await haFetch('/api/services/light/turn_on',d);
-  }catch(e){setStatus('err','Connection lost');toast("Couldn't reach Home Assistant")}
+  }catch(e){
+    if(e instanceof TypeError){setStatus('err','Offline — retrying');toast("Couldn't reach Home Assistant")}
+    else toast(`${l.name} didn't respond — it may be out of range or offline`);
+  }
 }
 function setStatus(cls,txt){$('pill').className='pill '+cls;$('pill').querySelector('span').textContent=txt}
 async function connect(quiet){
@@ -598,16 +601,17 @@ async function connect(quiet){
     clearInterval(HA.poll);
     HA.poll=setInterval(async()=>{
       if(!HA.live||HA.dragging||Date.now()-HA.lastLocal<3000||partyTimer)return;
-      try{await pull();render();setStatus('live','Home Assistant')}catch(e){setStatus('err','Connection lost')}
+      try{await pull();render();setStatus('live','Home Assistant')}catch(e){setStatus('err','Offline — retrying')}
     },4000);
-    setInterval(loadMeta,60000);loadEnergy();
+    clearInterval(HA.metaT);HA.metaT=setInterval(loadMeta,60000);clearTimeout(HA.retry);loadEnergy();
     render();if(!quiet)setTimeout(closeAll,700);
   }catch(e){
     HA.live=false;
     const blocked=e instanceof TypeError;
     $('haMsg').className='msg err';
-    $('haMsg').textContent=blocked?"Couldn't reach Home Assistant from this page. Open Vesta from your Home Assistant (step 4 below).":e.message;
-    if(quiet)setStatus('err','Not connected — using demo');
+    $('haMsg').textContent=blocked?"Couldn't reach Home Assistant at that address. Check that you're on your home Wi-Fi and the address is right.":e.message;
+    if(quiet&&S.ha.use){setStatus('err','Offline — retrying');clearTimeout(HA.retry);HA.retry=setTimeout(()=>connect(true),15000)}
+    else if(quiet)setStatus('err','Not connected — using demo');
     render();
   }
 }
@@ -699,7 +703,7 @@ function render(){
   $('summary').textContent=L.length?(on.length?`${on.length} light${on.length>1?'s':''} on`:'Everything is off'):'No lights found';
   const roomOn=L.some(l=>inRoom(l)&&l.on);
   $('masterBtn').textContent=(roomOn?'Turn off ':'Turn on ')+(S.room==='All'?'all':S.room);
-  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
+  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':S.ha.use?"Can't reach Home Assistant. Make sure you're on your home Wi-Fi — retrying automatically.":'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
 
   const myP=S.presets.filter(p=>S.room==='All'||p.room==='All'||p.room===S.room);
   $('scenes').innerHTML=myP.map(p=>`<button class="scene ${S.scene==='p:'+p.id?'active':''}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join('')
@@ -890,7 +894,7 @@ function mediaDevices(){
 }
 function mpPic(a){const p=a.entity_picture;if(!p)return '';return p.startsWith('http')?p:S.ha.url.replace(/\/$/,'')+p}
 function renderMedia(){
-  const box=$('mediaList');if(!box||S.view!=='media'||MP.busy)return;
+  const box=$('mediaList');if(!box||S.view!=='media'||MP.busy||(document.activeElement&&document.activeElement.tagName==='SELECT'&&box.contains(document.activeElement)))return;
   if(!HA.live){box.innerHTML='<p class="mempty">Connect Vesta to Home Assistant (link icon) to control your speakers and TVs.</p>';return}
   const ds=mediaDevices();
   if(!ds.length){box.innerHTML='<p class="mempty">No speakers or TVs found in Home Assistant.</p>';return}
@@ -915,6 +919,7 @@ function renderMedia(){
     return h+'</div>';
   }).join('');
   MP.list=ds;
+  if(MP.tv)MP.tv=ds.find(x=>x.n===MP.tv.n)||MP.tv;
 }
 async function mpCall(svc,d,data={},domain='media_player'){
   HA.lastLocal=Date.now();
@@ -941,13 +946,14 @@ $('mediaList').addEventListener('change',e=>{
   if(t.dataset.m==='source'&&t.value)mpCall('select_source',d.s.entity_id,{source:t.value});
 });
 addEventListener('pointerup',()=>{if(MP.busy)setTimeout(()=>MP.busy=0,300)});
+function tvFresh(){if(MP.tv&&HA.all){const f=mediaDevices().find(x=>x.n===MP.tv.n);if(f)MP.tv=f}}
 function openTV(d){
   MP.tv=d;$('tvName').textContent=d.n;
   const ia=d.info.attributes;$('tvMeta').textContent=d.remote?(ia.media_title||ia.app_name||(d.remote.state==='unavailable'?'Unavailable — check the TV is on the network':'')):'This TV has no remote in Home Assistant, so only volume and power work.';
   $('tvSh').classList.add('open');$('backdrop').classList.add('open');
 }
 $('tvSh').addEventListener('click',e=>{
-  const d=MP.tv;if(!d)return;const b=e.target.closest('[data-key],[data-rc],[data-app]');if(!b)return;
+  tvFresh();const d=MP.tv;if(!d)return;const b=e.target.closest('[data-key],[data-rc],[data-app]');if(!b)return;
   if(navigator.vibrate)navigator.vibrate(15);
   if(b.dataset.key){if(d.remote)mpCall('send_command',d.remote.entity_id,{command:b.dataset.key},'remote');else toast('No remote for this TV');return}
   if(b.dataset.app){if(d.remote)mpCall('turn_on',d.remote.entity_id,{activity:b.dataset.app},'remote');return}
@@ -1014,9 +1020,9 @@ window.lumenResync=async()=>{
   if(!HA.live)return connect(true);
   setStatus('','Syncing…');
   try{await haFetch('/api/');await loadMeta();await pull();render();setStatus('live','Home Assistant')}
-  catch(e){HA.live=false;connect(true)}
+  catch(e){setStatus('err','Offline — retrying');clearTimeout(HA.retry);HA.retry=setTimeout(()=>{RS.at=0;window.lumenResync()},15000)}
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)lumenResync()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)window.lumenResync()});
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};

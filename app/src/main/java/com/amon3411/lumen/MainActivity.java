@@ -5,7 +5,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowInsets;
+import android.widget.FrameLayout;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -37,7 +40,19 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        setContentView(web);
+        // Android 15+ draws apps edge-to-edge; keep Vesta clear of the status bar,
+        // gesture bar and keyboard by padding a container with the system insets.
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor("#131316"));
+        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        if (Build.VERSION.SDK_INT >= 30) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                android.graphics.Insets b = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
+                v.setPadding(b.left, b.top, b.right, b.bottom);
+                return WindowInsets.CONSUMED;
+            });
+        }
+        setContentView(root);
         if (state != null) web.restoreState(state);
         else web.loadUrl("file:///android_asset/lumen.html");
     }
