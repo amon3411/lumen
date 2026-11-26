@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -36,10 +37,20 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
                 if ("file".equals(u.getScheme())) return false;
-                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) {}
+                try {
+                    if ("intent".equals(u.getScheme())) {
+                        Intent i = Intent.parseUri(u.toString(), Intent.URI_INTENT_SCHEME);
+                        try { startActivity(i); }
+                        catch (Exception e) {
+                            String fb = i.getStringExtra("browser_fallback_url");
+                            if (fb != null) startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(fb)));
+                        }
+                    } else startActivity(new Intent(Intent.ACTION_VIEW, u));
+                } catch (Exception ignored) {}
                 return true;
             }
         });
+        web.addJavascriptInterface(new Native(), "VestaNative");
         // Android 15+ draws apps edge-to-edge; keep Vesta clear of the status bar,
         // gesture bar and keyboard by padding a container with the system insets.
         FrameLayout root = new FrameLayout(this);
@@ -55,6 +66,18 @@ public class MainActivity extends Activity {
         setContentView(root);
         if (state != null) web.restoreState(state);
         else web.loadUrl("file:///android_asset/lumen.html");
+    }
+
+    /** Small bridge so the page can open other apps (like the Deco app). */
+    class Native {
+        @JavascriptInterface
+        public boolean openApp(String pkg) {
+            Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (i == null) return false;
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            runOnUiThread(() -> startActivity(i));
+            return true;
+        }
     }
 
     @Override
