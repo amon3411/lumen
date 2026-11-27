@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.webkit.JavascriptInterface;
@@ -77,6 +78,11 @@ public class MainActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             runOnUiThread(() -> startActivity(i));
             return true;
+        }
+
+        @JavascriptInterface
+        public void buzz() {
+            runOnUiThread(() -> web.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP));
         }
     }
 

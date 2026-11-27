@@ -1,11 +1,8 @@
-**Vesta 1.4.1 — a much bigger Network tab**
+**Vesta 1.5.0 — instant updates and smoother everyday use**
 
-- **Open Deco app** button, right at the top.
-- **Speeds:** live download and upload with packets per second, plus 24-hour graphs with the peak speed.
-- **Latency:** internet response time and Home Assistant response time, measured from your phone.
-- **Data used** through the router since its last restart.
-- **Phones on Wi-Fi:** network name, signal strength with bars, link speed and IP address.
-- **Double NAT check:** tells you if your Deco sits behind another router (like an ISP modem) and what that means.
-- Who's home, as before.
+- **Live updates:** Vesta now listens to Home Assistant in real time, so a light switched from a wall switch, Google Home or another app updates in Vesta within a moment instead of every few seconds. Background polling drops to every 30 seconds as a safety net, which saves battery.
+- **Pull down to sync:** drag down from the top of any tab to refresh everything.
+- **Offline devices:** Vesta no longer sends commands to lights that are offline (this was filling Home Assistant's log with hundreds of warnings). Tapping an offline tile now tells you it's offline, and offline lights sort to the end of each room.
+- **Haptics:** a light tap of feedback when you switch a light.
 
 **In the app:** lights, Sonos speakers, TVs, cameras and network — all through Home Assistant.

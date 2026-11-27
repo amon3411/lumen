@@ -272,6 +272,8 @@
   .netgrid .mcard{margin:0}.netgrid .mcard b{font-size:22px;display:block;margin-top:4px}.netgrid .mcard span{font-size:12px;color:var(--muted)}
   .who{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}
   .bnav i{width:48px}.bnav button{font-size:11px}
+  #ptr{position:fixed;top:0;left:50%;transform:translate(-50%,-60px);z-index:50;background:var(--card);border:1px solid var(--line);color:var(--text);font-size:13px;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.3);transition:transform .2s;pointer-events:none}
+  #ptr.show{transition:none}
   .mempty{color:var(--muted);font-size:14px;text-align:center;padding:30px 10px}
 </style>
 </head>
@@ -566,13 +568,14 @@ function fromHA(s,prev){
     w:8,canDim,canColor,canTemp,minK:a.min_color_temp_kelvin||2200,maxK:a.max_color_temp_kelvin||6500};
 }
 async function pull(){
-  const st=await haFetch('/api/states');HA.all=st;
+  const st=await haFetch('/api/states');HA.all=st;HA.lastFull=Date.now();
   const prev=Object.fromEntries(HA.lights.map(l=>[l.id,l]));
   HA.lights=st.filter(s=>s.entity_id.startsWith('light.')||(S.display.switches&&s.entity_id.startsWith('switch.')&&!HA.cfgEnts.has(s.entity_id))).map(s=>fromHA(s,prev[s.entity_id]))
-    .sort((a,b)=>a.room.localeCompare(b.room)||a.name.localeCompare(b.name));
+    .sort((a,b)=>a.room.localeCompare(b.room)||(a.na-b.na)||a.name.localeCompare(b.name));
   if(cur&&!cur.isFx)cur=HA.lights.find(l=>l.id===cur.id)||null;
 }
 function push(...ls){
+  ls=ls.filter(l=>!l.na);if(!ls.length&&HA.live)return;
   if(!HA.live){if(S.ha.use)toast("Offline — can't reach Home Assistant");return}HA.lastLocal=Date.now();
   ls.forEach(l=>{clearTimeout(HA.timers[l.id]);HA.timers[l.id]=setTimeout(()=>send(l),180)});
 }
@@ -601,9 +604,11 @@ async function connect(quiet){
     clearInterval(HA.poll);
     HA.poll=setInterval(async()=>{
       if(!HA.live||HA.dragging||Date.now()-HA.lastLocal<3000||partyTimer)return;
+      if(!HA.wsLive)haLive();
+      if(HA.wsLive&&Date.now()-(HA.lastFull||0)<30000)return;
       try{await pull();render();setStatus('live','Home Assistant')}catch(e){setStatus('err','Offline — retrying')}
     },4000);
-    clearInterval(HA.metaT);HA.metaT=setInterval(loadMeta,60000);clearTimeout(HA.retry);loadEnergy();
+    clearInterval(HA.metaT);HA.metaT=setInterval(loadMeta,60000);haLive();clearTimeout(HA.retry);loadEnergy();
     render();if(!quiet)setTimeout(closeAll,700);
   }catch(e){
     HA.live=false;
@@ -1070,10 +1075,49 @@ window.lumenResync=async()=>{
   try{if(WS){try{WS.close&&WS.close()}catch(e){}}WS=null}catch(e){}
   if(!HA.live)return connect(true);
   setStatus('','Syncing…');
-  try{await haFetch('/api/');await loadMeta();await pull();render();setStatus('live','Home Assistant')}
+  try{await haFetch('/api/');await loadMeta();await pull();render();setStatus('live','Home Assistant');HA.wsLive=false;haLive()}
   catch(e){setStatus('err','Offline — retrying');clearTimeout(HA.retry);HA.retry=setTimeout(()=>{RS.at=0;window.lumenResync()},15000)}
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)window.lumenResync()});
+// ---------- live updates over the Home Assistant websocket ----------
+function buzz(){try{if(window.VestaNative&&VestaNative.buzz)VestaNative.buzz();else if(navigator.vibrate)navigator.vibrate(12)}catch(_){}}
+var LV={t:null};
+async function haLive(){
+  if(HA.wsLive||!HA.live)return;
+  try{
+    const w=await haWS();if(w.sub)return;
+    w.onEvent=ev=>{
+      const d=ev&&ev.data;if(!d||!d.entity_id)return;const id=d.entity_id,ns=d.new_state;
+      const all=HA.all||(HA.all=[]),i=all.findIndex(x=>x.entity_id===id);
+      if(!ns){if(i>=0)all.splice(i,1)}else if(i>=0)all[i]=ns;else all.push(ns);
+      const isLight=id.startsWith('light.')||(S.display.switches&&id.startsWith('switch.')&&!HA.cfgEnts.has(id));
+      if(isLight&&ns){
+        if(HA.dragging||Date.now()-HA.lastLocal<1500)return;
+        const j=HA.lights.findIndex(l=>l.id===id),nl=fromHA(ns,HA.lights[j]);
+        if(j>=0)HA.lights[j]=nl;else{HA.lights.push(nl);HA.lights.sort((a,b)=>a.room.localeCompare(b.room)||(a.na-b.na)||a.name.localeCompare(b.name))}
+        if(cur&&!cur.isFx&&cur.id===id)cur=nl;
+      }
+      const v=S.view,rel=isLight?v==='devices':/^(media_player|remote)\./.test(id)?v==='media':/^camera\./.test(id)?v==='cameras':/^(sensor|binary_sensor|device_tracker|person)\./.test(id)?v==='network':false;
+      if(!rel)return;
+      clearTimeout(LV.t);LV.t=setTimeout(()=>{if(!HA.dragging&&!G)render()},250);
+    };
+    await w.call('subscribe_events',{event_type:'state_changed'});
+    w.sub=true;HA.wsLive=true;
+  }catch(e){HA.wsLive=false}
+}
+
+// ---------- pull down to refresh ----------
+(function(){
+  const ind=document.createElement('div');ind.id='ptr';ind.textContent='↓ Pull to sync';document.body.appendChild(ind);
+  let y0=null,dy=0;
+  addEventListener('touchstart',e=>{y0=(scrollY<=0&&!document.querySelector('.sheet.open')&&!e.target.closest('input,canvas,.wheelWrap,[data-tile]'))?e.touches[0].clientY:null;dy=0},{passive:true});
+  addEventListener('touchmove',e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy<=0){ind.classList.remove('show');return}
+    ind.classList.add('show');ind.style.transform=`translate(-50%,${Math.min(dy,90)-40}px)`;ind.textContent=dy>80?'↻ Release to sync':'↓ Pull to sync'},{passive:true});
+  addEventListener('touchend',async()=>{if(y0==null)return;y0=null;
+    if(dy>80&&S.ha.use){ind.textContent='Syncing…';buzz();RS.at=0;await window.lumenResync();ind.textContent='✓ Up to date';setTimeout(()=>{ind.classList.remove('show');ind.style.transform=''},700)}
+    else{ind.classList.remove('show');ind.style.transform=''}});
+})();
+
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
@@ -1151,7 +1195,8 @@ addEventListener('pointermove',e=>{
 addEventListener('pointerup',e=>{
   if(!G||e.pointerId!==G.id)return;clearTimeout(G.lp);const g=G;G=null;HA.dragging=false;
   if(g.moved){render();return}
-  if(!g.long&&!g.it.na){userChange();const ts=targets(g.it),v=!g.it.on;ts.forEach(l=>l.on=v);push(...ts);render()}
+  if(!g.long&&g.it.na){toast(`${g.it.name} is offline — check its power or Wi-Fi`);return}
+  if(!g.long&&!g.it.na){buzz();userChange();const ts=targets(g.it),v=!g.it.on;ts.forEach(l=>l.on=v);push(...ts);render()}
 });
 addEventListener('pointercancel',()=>{if(G){clearTimeout(G.lp);G=null;HA.dragging=false}});
 $('grid').addEventListener('contextmenu',e=>{if(e.target.closest('[data-tile]'))e.preventDefault()});
@@ -1334,9 +1379,10 @@ function haWS(){
       if(m.type==='auth_required')ws.send(JSON.stringify({type:'auth',access_token:S.ha.token}));
       else if(m.type==='auth_ok'){api.ready=true;WS=api;res(api)}
       else if(m.type==='auth_invalid')rej(new Error('Token was rejected.'));
+      else if(m.type==='event'&&api.onEvent){try{api.onEvent(m.event)}catch(_){}}
       else if(m.type==='result'&&pend[m.id]){m.success?pend[m.id].ok(m.result):pend[m.id].no(new Error(m.error?.message||'Request failed'));delete pend[m.id]}};
     ws.onerror=()=>rej(new Error("Couldn't open a live connection to Home Assistant."));
-    ws.onclose=()=>{if(WS===api)WS=null};
+    ws.onclose=()=>{if(WS===api){WS=null;HA.wsLive=false}};
   });
 }
 async function loadTR(h){
