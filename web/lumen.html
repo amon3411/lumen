@@ -268,6 +268,13 @@
   .cam b{position:absolute;left:0;right:0;bottom:0;padding:18px 10px 8px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}
   .cam .dot{position:absolute;top:8px;left:8px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:999px}
   #camSh img{width:100%;border-radius:12px;background:#000;display:block;min-height:120px}
+  .rdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--line);margin-right:7px;vertical-align:middle}.rdot.on{background:#3ecf8e}.rdot.off{background:#ff6b6b}
+  .rrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.rrow:first-of-type{border-top:0;padding-top:0}
+  .rrow>div{min-width:0}.rrow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  .rbtn{background:var(--card2);border:none;color:var(--text);padding:7px 11px;border-radius:9px;font-family:inherit;font-size:13px;cursor:pointer;flex:none}
+  .rbtn.warn{color:#ff6b6b}.rbtn.arm{background:#ff6b6b;color:#1a1a1a;font-weight:700}.rbtn:disabled{opacity:.5}
+  .rtag{font-size:11px;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,#ff6b6b 20%,transparent);color:#ff6b6b;margin-left:6px}
+  .rmem{height:6px;background:var(--card2);border-radius:6px;overflow:hidden;margin-top:8px}.rmem i{display:block;height:100%;background:var(--accent)}
   .netgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .netgrid .mcard{margin:0}.netgrid .mcard b{font-size:22px;display:block;margin-top:4px}.netgrid .mcard span{font-size:12px;color:var(--muted)}
   .who{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}
@@ -322,6 +329,7 @@
 
 <section id="vNetwork" hidden>
 <h2>Internet</h2>
+<div id="rtrBox"></div>
 <div id="netList"></div>
 </section>
 
@@ -485,6 +493,12 @@
     <button class="ghost" data-app="https://app.primevideo.com">Prime Video</button>
     <button class="ghost" data-app="https://www.disneyplus.com">Disney+</button>
   </div>
+</div>
+
+<div class="sheet" id="rtrSh">
+  <div class="grab"></div>
+  <h3><span id="rtrShTitle">Router</span> <button class="x" data-rclose aria-label="Close">×</button></h3>
+  <div id="rtrShBody"></div>
 </div>
 
 <div class="sheet" id="camSh">
@@ -802,7 +816,7 @@ function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
 
 // ---------- light sheet ----------
 function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
-function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
+function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh','rtrSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
 function renderSheet(){
   const l=cur;$('shName').textContent=l.name;
   const pf=!l.isFx&&fxOf(l.id);
@@ -1044,6 +1058,8 @@ function openRouter(){
 }
 function renderNet(){
   const box=$('netList');if(!box||S.view!=='network')return;
+  const rtOn=typeof RTS!=='undefined'&&!!(RTS.data&&!RTS.err);if(typeof RTS!=='undefined'){renderRouter();rtLoad()}
+  if(!HA.live&&rtOn){box.innerHTML='<button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
   if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your network.</p><button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
   const st=HA.all||[],f=re=>st.find(s=>re.test(s.entity_id)),A=(x,k)=>x?.attributes?.[k];
   const dl=f(/^sensor\..*(?<!packet_)download_speed$/),ul=f(/^sensor\..*(?<!packet_)upload_speed$/),ip=f(/^sensor\..*external_ip$/),wan=f(/^(binary_)?sensor\..*wan_status$/);
@@ -1059,8 +1075,8 @@ function renderNet(){
   const priv=ip&&/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(ip.state);
   const lat=v=>v==null?'…':v<0?'—':v+' ms';
   const card=(t,v,sub='')=>`<div class="mcard"><span>${t}</span><b>${v}</b>${sub?`<span>${sub}</span>`:''}</div>`;
-  let h=`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online==null?'Checking…':online?'Internet online':'Internet offline'}${upnpLive&&ip?' · WAN IP '+esc(ip.state):' · 192.168.1.1'}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online==null?'…':online?'✓':'!'}</span></div>
-  <button class="primary" style="width:100%;margin-bottom:12px" data-router>Open router settings (LuCI)</button>
+  let h=rtOn?'':`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online==null?'Checking…':online?'Internet online':'Internet offline'}${upnpLive&&ip?' · WAN IP '+esc(ip.state):' · 192.168.1.1'}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online==null?'…':online?'✓':'!'}</span></div>`;
+  h+=`<button class="primary" style="width:100%;margin-bottom:12px" data-router>Open router settings (LuCI)</button>
   <div class="netgrid">
     ${upnpLive?card('Download now',dl?fmtRate(dl.state,A(dl,'unit_of_measurement')):'—',pdl?Math.round(+pdl.state||0)+' packets/s':''):''}
     ${upnpLive?card('Upload now',ul?fmtRate(ul.state,A(ul,'unit_of_measurement')):'—',pul?Math.round(+pul.state||0)+' packets/s':''):''}
@@ -1077,12 +1093,206 @@ function renderNet(){
     const bits=[];if(on&&!isNaN(dbm))bits.push(bars(dbm)+dbm+' dBm');if(on&&p.link&&!isNaN(+p.link.state))bits.push(p.link.state+' Mbps link');if(p.ip&&on)bits.push('IP '+esc(p.ip.state));if(p.type&&!on)bits.push(esc(p.type.state));
     return `<div class="mcard"><div style="display:flex;justify-content:space-between"><b style="font-size:15px">${esc(p.name)}</b><span class="meta">${on?esc(p.ssid):['unknown','unavailable'].includes(p.ssid)?'Waiting for phone data':'Not on Wi-Fi'}</span></div>${bits.length?`<div class="meta" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">${bits.map(b=>`<span style="display:inline-flex;align-items:center">${b}</span>`).join('')}</div>`:''}</div>`}).join('')}
   const routerDevs=st.filter(s=>s.entity_id.startsWith('device_tracker.')&&A(s,'source_type')==='router');
-  if(routerDevs.length){const on=routerDevs.filter(d=>d.state==='home');h+=`<h2>Connected devices · ${on.length} online</h2>`+routerDevs.sort((a,b)=>(a.state==='home'?0:1)-(b.state==='home'?0:1)||(A(a,'friendly_name')||'').localeCompare(A(b,'friendly_name')||'')).map(d=>`<div class="mcard who"><div><span>${esc((A(d,'friendly_name')||A(d,'host_name')||d.entity_id).trim())}</span>${A(d,'ip')?`<div class="meta">${esc(A(d,'ip'))}</div>`:''}</div><span class="meta">${d.state==='home'?'Online':'Offline'}</span></div>`).join('')}
-  else h+='<p class="hint">To list every device on your Wi-Fi here, add the <b>OpenWrt (LuCI)</b> or <b>Ubus</b> integration in Home Assistant with your router login.</p>';
+  if(rtOn){}
+  else if(routerDevs.length){const on=routerDevs.filter(d=>d.state==='home');h+=`<h2>Connected devices · ${on.length} online</h2>`+routerDevs.sort((a,b)=>(a.state==='home'?0:1)-(b.state==='home'?0:1)||(A(a,'friendly_name')||'').localeCompare(A(b,'friendly_name')||'')).map(d=>`<div class="mcard who"><div><span>${esc((A(d,'friendly_name')||A(d,'host_name')||d.entity_id).trim())}</span>${A(d,'ip')?`<div class="meta">${esc(A(d,'ip'))}</div>`:''}</div><span class="meta">${d.state==='home'?'Online':'Offline'}</span></div>`).join('')}
+  else h+='<p class="hint">Sign in to your router above to see and control every device on your Wi-Fi.</p>';
   if(people.filter(p=>A(p,'source_type')!=='router').length)h+='<h2>Who\'s home</h2>'+people.filter(p=>A(p,'source_type')!=='router').map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':p.state==='unknown'?'Unknown':esc(p.state)}</span></div>`).join('');
   box.innerHTML=h;
 }
 $('netList').addEventListener('click',e=>{if(e.target.closest('[data-router]'))openRouter()});
+// ---------- OpenWrt router controls (talks to the router directly over ubus) ----------
+var RT=(()=>{try{return JSON.parse(localStorage.getItem('vestaRouter'))||{}}catch(e){return {}}})();
+RT.url=RT.url||'http://192.168.1.1';RT.user=RT.user||'root';
+var RTS={data:null,busy:false,err:'',at:0,arm:null,all:false};
+const RT_NULL='0'.repeat(32),RT_BLOCK='VestaBlock_';
+const rtSave=()=>{try{localStorage.setItem('vestaRouter',JSON.stringify({url:RT.url,user:RT.user,pass:RT.pass,sid:RT.sid}))}catch(e){}};
+let rtId=1,rtLoginP=null;
+async function rtRaw(sid,obj,m,args){
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),8000);
+  try{
+    const r=await fetch(RT.url.replace(/\/+$/,'')+'/ubus',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,
+      body:JSON.stringify({jsonrpc:'2.0',id:rtId++,method:'call',params:[sid,obj,m,args||{}]})});
+    const j=await r.json();
+    if(j.error)return [j.error.code===-32002?6:-1,j.error.message];
+    return j.result;
+  }finally{clearTimeout(to)}
+}
+function rtLogin(){
+  return rtLoginP||(rtLoginP=(async()=>{
+    const [c,d]=await rtRaw(RT_NULL,'session','login',{username:RT.user,password:RT.pass||''});
+    if(c!==0){RT.sid='';rtSave();const e=new Error('Wrong router password');e.auth=true;throw e}
+    RT.sid=d.ubus_rpc_session;rtSave();
+  })().finally(()=>rtLoginP=null));
+}
+async function rt(obj,m,args){
+  if(!RT.sid)await rtLogin();
+  let [c,d]=await rtRaw(RT.sid,obj,m,args);
+  if(c===6){await rtLogin();[c,d]=await rtRaw(RT.sid,obj,m,args)}
+  if(c!==0)throw new Error(`Router said no to ${obj} ${m} (${c})`);
+  return d||{};
+}
+const rtUci={
+  get:c=>rt('uci','get',{config:c}).then(d=>d.values||{}),
+  set:(c,sec,v)=>rt('uci','set',{config:c,section:sec,values:v}),
+  add:(c,type,v)=>rt('uci','add',{config:c,type,values:v}),
+  del:(c,sec)=>rt('uci','delete',{config:c,section:sec}),
+  commit:c=>rt('uci','commit',{config:c})
+};
+const rtExec=(cmd,params)=>rt('file','exec',{command:cmd,params:params||[]});
+const rtMac=m=>String(m||'').toLowerCase();
+
+async function rtClients(){
+  const map={};let devs=[];
+  try{devs=(await rt('iwinfo','devices')).devices||[]}catch(e){return map}
+  await Promise.all(devs.map(async dev=>{try{
+    const r=await rt('iwinfo','assoclist',{device:dev});(r.results||[]).forEach(c=>map[rtMac(c.mac)]={dev,signal:c.signal});
+  }catch(e){}}));
+  return map;
+}
+async function rtLoad(force){
+  if(!RT.pass&&!RT.sid)return;
+  if(RTS.busy||(!force&&Date.now()-RTS.at<8000))return;
+  RTS.busy=true;RTS.at=Date.now();
+  try{
+    if(!RT.sid)await rtLogin();
+    const [info,board,ifs,wl,fw,leases,clients]=await Promise.all([
+      rt('system','info'),rt('system','board'),
+      rt('network.interface','dump').then(d=>d.interface||[]).catch(()=>[]),
+      rtUci.get('wireless'),rtUci.get('firewall'),
+      rt('file','read',{path:'/tmp/dhcp.leases'}).then(d=>d.data||'').catch(()=>''),
+      rtClients()]);
+    const wan=ifs.find(i=>(i.route||[]).some(r=>r.target==='0.0.0.0'&&r.mask===0))||ifs.find(i=>i.interface==='wan')||null;
+    RTS.data={info,board,wan,wl,fw,leases,clients};RTS.err='';
+  }catch(e){RTS.err=e.auth?'auth':(e.name==='AbortError'||e instanceof TypeError)?'reach':e.message}
+  finally{RTS.busy=false}
+  renderRouter();
+}
+setInterval(()=>{if(S.view==='network'&&!document.hidden)rtLoad()},10000);
+
+function rtUp(s){s=+s||0;const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return (d?d+'d ':'')+h+'h '+m+'m'}
+function rtDevices(){
+  const D=RTS.data,devs={},blocked={};
+  Object.entries(D.fw).forEach(([k,v])=>{if(v['.type']==='rule'&&String(v.name||'').startsWith(RT_BLOCK))blocked[rtMac(v.src_mac)]=k});
+  D.leases.trim().split('\n').filter(Boolean).forEach(l=>{const [,mac,ip,name]=l.split(' ');devs[rtMac(mac)]={mac:rtMac(mac),ip,name:name==='*'?'':name}});
+  // Names Home Assistant already knows (from the phone app etc.) fill gaps
+  (HA.all||[]).forEach(s=>{const m=rtMac(s.attributes?.mac);if(m&&devs[m]&&!devs[m].name)devs[m].name=s.attributes.friendly_name||''});
+  [...Object.keys(D.clients),...Object.keys(blocked)].forEach(m=>devs[m]=devs[m]||{mac:m,ip:'',name:''});
+  return Object.values(devs).map(d=>({...d,wifi:D.clients[d.mac],block:blocked[d.mac]}))
+    .sort((a,b)=>(!!b.wifi-!!a.wifi)||(!!b.block-!!a.block)||(a.name||'~').localeCompare(b.name||'~'));
+}
+function rtBtn(act,arg,label,cls){const key=act+':'+arg,armed=RTS.arm===key;
+  return `<button class="rbtn ${cls||''} ${armed?'arm':''}" data-ract="${act}" data-arg="${esc(arg)}">${armed?'Tap again':label}</button>`}
+
+function renderRouter(){
+  const box=$('rtrBox');if(!box)return;
+  if(!RT.pass&&!RT.sid){
+    box.innerHTML=`<div class="mcard"><b style="font-size:16px">Control your router</b><p class="fdesc">Sign in with your OpenWrt password to see who's on your Wi-Fi, kick or block devices, change Wi-Fi settings and restart the router — right from Vesta.</p>
+      <button class="primary" style="width:100%;margin-top:12px" data-ract="login">Sign in to router</button></div>`;return}
+  if(RTS.err&&!RTS.data||RTS.err==='auth'){
+    const msg=RTS.err==='auth'?'The router rejected the password.':RTS.err==='reach'?`Can't reach the router at ${esc(RT.url)}. Make sure this phone is on your home Wi-Fi.${window.VestaNative?'':' On iPhone or in a browser, also turn on CORS for ubus (see Router settings).'}`:esc(RTS.err);
+    box.innerHTML=`<div class="mcard"><b style="font-size:16px">Router</b><p class="fdesc">${msg}</p><div class="btnrow"><button class="ghost" data-ract="retry">Try again</button><button class="ghost" data-ract="login">Router settings</button></div></div>`;return}
+  if(!RTS.data){box.innerHTML='<div class="mcard"><p class="fdesc">Connecting to your router…</p></div>';return}
+  const {info,board,wan,wl}=RTS.data,mem=info.memory||{},used=mem.total-(mem.available??mem.free),ip=wan?.['ipv4-address']?.[0]?.address;
+  const radios={};Object.entries(wl).forEach(([k,v])=>{if(v['.type']==='wifi-device')radios[k]=v});
+  const ifaces=Object.entries(wl).filter(([,v])=>v['.type']==='wifi-iface'&&(v.mode||'ap')==='ap');
+  const devs=rtDevices(),onWifi=devs.filter(d=>d.wifi).length,shown=RTS.all?devs:devs.slice(0,12);
+  let h=`<div class="mcard"><div style="display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:16px">${esc(board.hostname||'Router')}</b>
+      <div class="meta"><span class="rdot ${wan?.up?'on':'off'}"></span>${wan?.up?'Internet online':'Internet offline'}${ip?' · WAN IP '+esc(ip):''}</div></div>
+      <span class="meta">${RTS.err?'Offline':'Live'}</span></div>
+    <div class="netgrid" style="margin-top:12px">
+      <div class="mcard"><span>Router uptime</span><b>${rtUp(info.uptime)}</b></div>
+      <div class="mcard"><span>On Wi-Fi now</span><b>${onWifi}</b><span>${devs.length} known devices</span></div>
+    </div>
+    <div class="meta" style="margin-top:12px">Memory ${Math.round(used/1048576)} of ${Math.round(mem.total/1048576)} MB · load ${(info.load?.[0]/65536||0).toFixed(2)}</div>
+    <div class="rmem"><i style="width:${mem.total?Math.round(used/mem.total*100):0}%"></i></div>
+    <div class="meta" style="margin-top:8px">${esc(board.model||'')} · ${esc(board.release?.description||'')}</div></div>`;
+  h+='<h2>Wi-Fi networks</h2><div class="mcard">'+(ifaces.map(([k,v])=>{const r=radios[v.device]||{},on=v.disabled!=='1'&&r.disabled!=='1';
+    const band=r.band?r.band.replace('g',' GHz'):(r.hwmode==='11a'?'5 GHz':'2.4 GHz');
+    return `<div class="rrow"><div><b>${esc(v.ssid)}</b><span class="meta">${band} · ch ${esc(r.channel||'auto')}${v.network&&v.network!=='lan'?' · '+esc(v.network):''}</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="rbtn" data-ract="edit" data-arg="${esc(k)}">Edit</button>
+      <button class="sw ${on?'on':''}" data-ract="wifi" data-arg="${esc(k)}" aria-label="Turn ${esc(v.ssid)} ${on?'off':'on'}"></button></div></div>`}).join('')||'<p class="fdesc">No Wi-Fi networks set up.</p>')+'</div>';
+  h+=`<h2>Devices · ${onWifi} on Wi-Fi</h2><div class="mcard">`+(shown.map(d=>`<div class="rrow"><div>
+      <b><span class="rdot ${d.wifi?'on':''}"></span>${esc(d.name||'Unknown device')}${d.block?'<span class="rtag">blocked</span>':''}</b>
+      <span class="meta">${[d.ip,d.mac,d.wifi?bars(d.wifi.signal)+d.wifi.signal+' dBm':''].filter(Boolean).join(' · ')}</span></div>
+      <div style="display:flex;gap:6px">${d.wifi?rtBtn('kick',d.mac,'Kick'):''}${d.block?rtBtn('unblock',d.block,'Unblock'):rtBtn('block',d.mac,'Block','warn')}</div></div>`).join('')||'<p class="fdesc">No devices yet.</p>')
+    +(devs.length>12?`<button class="ghost" style="width:100%;margin-top:10px" data-ract="all">${RTS.all?'Show fewer':'Show all '+devs.length}</button>`:'')
+    +`<p class="hint">Green = on this router's Wi-Fi. Wired devices and devices on your other Velop units show without a dot. Kick disconnects a device from Wi-Fi (it can rejoin); Block cuts its internet until you unblock it.</p></div>`;
+  h+=`<h2>Router actions</h2><div class="mcard">
+    <div class="rrow"><div><b>Restart Wi-Fi</b><span class="meta">Everyone reconnects in a few seconds</span></div>${rtBtn('wifirestart','x','Restart')}</div>
+    <div class="rrow"><div><b>Reconnect internet</b><span class="meta">Restarts the WAN connection</span></div>${rtBtn('wan','x','Reconnect')}</div>
+    <div class="rrow"><div><b>Reboot router</b><span class="meta">Back in about 2 minutes</span></div>${rtBtn('reboot','x','Reboot','warn')}</div>
+    <div class="rrow"><div><b>Router settings</b><span class="meta">Address, login, sign out</span></div><button class="rbtn" data-ract="login">Open</button></div></div>`;
+  box.innerHTML=h;
+}
+
+function rtSheet(title,html){$('rtrShTitle').textContent=title;$('rtrShBody').innerHTML=html;$('rtrSh').classList.add('open');$('backdrop').classList.add('open')}
+const rtField='style="width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px"';
+function rtLoginSheet(){
+  rtSheet('Router settings',`<form class="form" id="rtLoginF">
+    <label>Router address</label><input name="url" ${rtField} value="${esc(RT.url)}" autocomplete="off" autocapitalize="off">
+    <label>Username</label><input name="user" ${rtField} value="${esc(RT.user)}" autocomplete="off" autocapitalize="off">
+    <label>Password</label><input name="pass" ${rtField} type="password" placeholder="Your LuCI password" autocomplete="current-password">
+    <div class="btnrow">${RT.pass||RT.sid?'<button type="button" class="ghost" data-ract="signout">Sign out</button>':''}<button class="primary">Sign in</button></div>
+    <div class="msg" id="rtMsg"></div></form>
+    <p class="fdesc" style="margin-top:14px">This is the same login as LuCI (usually <b>root</b>). It stays on this phone.${window.VestaNative?'':'\n\n<b>iPhone / browser:</b> the router must allow Vesta to talk to it. Over SSH run:\nuci set uhttpd.main.ubus_cors=1; uci commit uhttpd; /etc/init.d/uhttpd restart'}</p>`);
+}
+function rtEditSheet(sec){
+  const v=RTS.data?.wl?.[sec];if(!v)return;
+  rtSheet('Edit Wi-Fi',`<form class="form" id="rtWifiF" data-sec="${esc(sec)}">
+    <label>Wi-Fi name</label><input name="ssid" ${rtField} value="${esc(v.ssid)}" maxlength="32" required>
+    <label>Password</label><input name="key" ${rtField} type="password" value="${esc(v.key||'')}" minlength="8" maxlength="63" autocomplete="off">
+    <button type="button" class="ghost" style="width:100%;margin-top:8px" data-ract="peek">Show password</button>
+    <div class="btnrow"><button class="primary">Save &amp; apply</button></div><div class="msg" id="rtMsg"></div></form>
+    <p class="fdesc" style="margin-top:14px">Saving restarts Wi-Fi. If you change the network this phone is on, reconnect with the new name or password.</p>`);
+}
+async function rtApply(cfg,cmd,args){await rtUci.commit(cfg);try{await rtExec(cmd,args)}catch(e){}}
+
+async function rtAction(act,arg,btn){
+  const D=RTS.data,needArm=['block','reboot','wan'];
+  if(needArm.includes(act)&&RTS.arm!==act+':'+arg){RTS.arm=act+':'+arg;renderRouter();setTimeout(()=>{if(RTS.arm===act+':'+arg){RTS.arm=null;renderRouter()}},3500);return}
+  RTS.arm=null;
+  try{
+    if(act==='login')return rtLoginSheet();
+    if(act==='retry'){RTS.err='';RTS.data=null;renderRouter();return rtLoad(true)}
+    if(act==='all'){RTS.all=!RTS.all;return renderRouter()}
+    if(act==='edit')return rtEditSheet(arg);
+    if(act==='peek'){const i=document.querySelector('#rtWifiF [name=key]');i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'Show password':'Hide password';return}
+    if(act==='signout'){if(RT.sid)rtRaw(RT.sid,'session','destroy',{}).catch(()=>{});RT.pass='';RT.sid='';RTS.data=null;RTS.err='';rtSave();closeAll();renderRouter();renderNet();return toast('Signed out of router')}
+    if(btn)btn.disabled=true;buzz();
+    if(act==='kick'){await rt('hostapd.'+D.clients[arg].dev,'del_client',{addr:arg,reason:5,deauth:true,ban_time:0});toast('Disconnected from Wi-Fi')}
+    if(act==='block'){
+      await rtUci.add('firewall','rule',{name:RT_BLOCK+arg.replace(/:/g,''),src:'lan',dest:'wan',src_mac:arg,proto:'all',target:'REJECT'});
+      await rtApply('firewall','/etc/init.d/firewall',['reload']);
+      const d=rtDevices().find(x=>x.mac===arg);if(d?.wifi)rt('hostapd.'+d.wifi.dev,'del_client',{addr:arg,reason:5,deauth:true,ban_time:0}).catch(()=>{});
+      toast('Internet blocked')}
+    if(act==='unblock'){await rtUci.del('firewall',arg);await rtApply('firewall','/etc/init.d/firewall',['reload']);toast('Unblocked')}
+    if(act==='wifi'){const v=D.wl[arg],on=!(v.disabled!=='1'&&D.wl[v.device]?.disabled!=='1');
+      await rtUci.set('wireless',arg,{disabled:on?'0':'1'});if(on)await rtUci.set('wireless',v.device,{disabled:'0'});
+      await rtApply('wireless','/sbin/wifi',['reload']);toast(`${v.ssid} ${on?'on':'off'}`)}
+    if(act==='wifirestart'){await rtExec('/sbin/wifi',['reload']);toast('Wi-Fi restarting')}
+    if(act==='wan'){const n=D.wan?.interface||'wan';await rt('network.interface.'+n,'down');setTimeout(()=>rt('network.interface.'+n,'up').catch(()=>{}),2000);toast('Reconnecting internet…')}
+    if(act==='reboot'){rt('system','reboot').catch(()=>{});RTS.data=null;RTS.err='';renderRouter();toast('Router rebooting — back in ~2 min');return}
+  }catch(e){toast(e.message||'Router error')}
+  setTimeout(()=>rtLoad(true),act==='wifi'||act==='wifirestart'?4000:1200);
+}
+$('rtrBox').addEventListener('click',e=>{const b=e.target.closest('[data-ract]');if(b)rtAction(b.dataset.ract,b.dataset.arg,b)});
+$('rtrSh').addEventListener('click',e=>{if(e.target.closest('[data-rclose]'))return closeAll();const b=e.target.closest('[data-ract]');if(b)rtAction(b.dataset.ract,b.dataset.arg,b)});
+$('rtrSh').addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.target,F=n=>f.querySelector(`[name=${n}]`).value,msg=t=>{const m=$('rtMsg');if(m)m.textContent=t};
+  if(f.id==='rtLoginF'){
+    RT.url=(F('url').trim()||'http://192.168.1.1').replace(/\/+$/,'');if(!/^https?:\/\//.test(RT.url))RT.url='http://'+RT.url;
+    RT.user=F('user').trim()||'root';if(F('pass'))RT.pass=F('pass');RT.sid='';msg('Signing in…');
+    try{await rtLogin();RTS.data=null;RTS.err='';closeAll();toast('Router connected');renderRouter();rtLoad(true)}
+    catch(err){msg(err.auth?'Wrong username or password.':`Can't reach ${RT.url} — is this phone on your home Wi-Fi?`)}
+  }
+  if(f.id==='rtWifiF'){
+    const ssid=F('ssid').trim(),key=F('key');if(!ssid)return msg('Wi-Fi name can\'t be empty');if(key&&key.length<8)return msg('Password needs 8+ characters');
+    msg('Saving…');
+    try{const v={ssid};if(key)v.key=key;await rtUci.set('wireless',f.dataset.sec,v);await rtApply('wireless','/sbin/wifi',['reload']);closeAll();toast('Saved — Wi-Fi restarting');setTimeout(()=>rtLoad(true),5000)}
+    catch(err){msg(err.message)}
+  }
+});
+
 
 // ---------- resync with Home Assistant every time the app opens ----------
 var RS={at:0};
