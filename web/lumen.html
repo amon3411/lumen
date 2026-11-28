@@ -1067,7 +1067,7 @@ async function tvAspect(d){
   if(!d.remote)return toast('No remote for this TV');
   HA.lastLocal=Date.now();
   try{await haFetch('/api/services/remote/send_command',{entity_id:d.remote.entity_id,command:'TV_ZOOM_MODE'});toast('Picture size changed — tap again to cycle')}
-  catch(e){toast('TV ignored the zoom key — use Picture settings → Picture size → 4:3')}
+  catch(e){toast('TV ignored the zoom key — use Picture settings → Picture → Aspect ratio → 4:3')}
 }
 $('tvSh').addEventListener('click',e=>{
   tvFresh();const d=MP.tv;if(!d)return;const b=e.target.closest('[data-key],[data-rc],[data-app]');if(!b)return;
