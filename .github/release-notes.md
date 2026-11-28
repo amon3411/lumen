@@ -1,6 +1,9 @@
-**Vesta 1.5.2**
+**Vesta 1.6.0 — Network tab for your OpenWrt router**
 
-- **Finds Home Assistant by itself:** if Home Assistant moves to a new address (like after a router change), Vesta now checks its other known addresses — including `192.168.1.104` and `TheHouseButler.local` — reconnects on its own and remembers the new one. No need to retype anything.
-- If it still can't connect, tap the offline message to open the connection screen.
+- **Open router settings:** the Deco button is now an **Open router settings (LuCI)** button that goes straight to your OpenWrt admin page at 192.168.1.1.
+- **Internet status** comes from a live check on your phone, so it works without any router integration.
+- **Connected devices:** once the OpenWrt (LuCI) or Ubus integration is added in Home Assistant, every device on your Wi-Fi shows here with its IP and online status.
+- **Live speeds and data use** return automatically once UPnP is turned on in OpenWrt — the tab shows exactly how.
+- Old Deco-only sections are hidden.
 
-Also includes live updates, pull to sync, offline-device handling and haptics from 1.5.0.
+Also: Vesta finds Home Assistant by itself after an address change (1.5.2), live updates, pull to sync and haptics.

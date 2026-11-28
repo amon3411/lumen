@@ -1036,15 +1036,15 @@ function spark(pts,unit){
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:60px;display:block"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg><div class="meta" style="display:flex;justify-content:space-between"><span>24h ago</span><span>Peak ${fmtRate(Math.max(...pts.map(p=>p[1])),unit)}</span><span>now</span></div>`;
 }
 function bars(dbm){const n=dbm>=-55?4:dbm>=-65?3:dbm>=-75?2:dbm>=-85?1:0;return `<span style="display:inline-flex;gap:2px;align-items:flex-end;height:14px;margin-right:6px">${[1,2,3,4].map(i=>`<i style="width:4px;height:${i*3+2}px;border-radius:1px;background:${i<=n?'var(--accent)':'var(--line)'}"></i>`).join('')}</span>`}
-const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent),DECO_PKG='com.tplink.tpm5',DECO_IOS='https://apps.apple.com/app/id1186159417';
-function openDeco(){
-  if(window.VestaNative&&VestaNative.openApp){if(!VestaNative.openApp(DECO_PKG))location.href='https://play.google.com/store/apps/details?id='+DECO_PKG;return}
-  if(IS_IOS){location.href=DECO_IOS;return}
-  location.href='intent://#Intent;package='+DECO_PKG+';action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url='+encodeURIComponent('https://play.google.com/store/apps/details?id='+DECO_PKG)+';end';
+const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent),ROUTER_URL='http://192.168.1.1/cgi-bin/luci/';
+function openRouter(){
+  // Android app: opens in the phone's browser. iPhone/web: opens in a new tab.
+  if(window.VestaNative||location.protocol==='file:'){location.href=ROUTER_URL;return}
+  window.open(ROUTER_URL,'_blank');
 }
 function renderNet(){
   const box=$('netList');if(!box||S.view!=='network')return;
-  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your network.</p><button class="primary" style="width:100%" data-deco>Open Deco app</button>';return}
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your network.</p><button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
   const st=HA.all||[],f=re=>st.find(s=>re.test(s.entity_id)),A=(x,k)=>x?.attributes?.[k];
   const dl=f(/^sensor\..*(?<!packet_)download_speed$/),ul=f(/^sensor\..*(?<!packet_)upload_speed$/),ip=f(/^sensor\..*external_ip$/),wan=f(/^(binary_)?sensor\..*wan_status$/);
   const rx=f(/^sensor\..*data_received$/),tx=f(/^sensor\..*data_sent$/),pdl=f(/^sensor\..*packet_download_speed$/),pul=f(/^sensor\..*packet_upload_speed$/);
@@ -1053,32 +1053,36 @@ function renderNet(){
     return {name:(A(c,'friendly_name')||'').replace(/\s*Wi-?Fi connection$/i,'').trim()||'Phone',ssid:c.state,sig:g('wi_fi_signal_strength'),link:g('wi_fi_link_speed'),ip:g('wi_fi_ip_address'),type:g('network_type'),pub:g('public_ip_address')}});
   if([dl,ul,pdl].some(Boolean))netHistory([dl,ul].filter(Boolean).map(x=>x.entity_id));
   netLatency();
-  const router=(A(dl||ul||ip,'friendly_name')||'Router').split(' ')[0];
-  const online=wan?(/on|connected|up/i.test(wan.state)):(ip&&!['unavailable','unknown'].includes(ip.state));
+  const upnpLive=[dl,ul,ip].some(x=>x&&!['unavailable','unknown'].includes(x.state));
+  const router=upnpLive?(A(dl||ul||ip,'friendly_name')||'Router').split(' ')[0]:'OpenWrt router';
+  const online=wan?(/on|connected|up/i.test(wan.state)):upnpLive?true:(NET.lat==null?null:NET.lat>0);
   const priv=ip&&/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(ip.state);
   const lat=v=>v==null?'…':v<0?'—':v+' ms';
   const card=(t,v,sub='')=>`<div class="mcard"><span>${t}</span><b>${v}</b>${sub?`<span>${sub}</span>`:''}</div>`;
-  let h=`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online?'Online':'Offline'}${ip?' · WAN IP '+esc(ip.state):''}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online?'✓':'!'}</span></div>
-  <button class="primary" style="width:100%;margin-bottom:12px" data-deco>Open Deco app</button>
+  let h=`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online==null?'Checking…':online?'Internet online':'Internet offline'}${upnpLive&&ip?' · WAN IP '+esc(ip.state):' · 192.168.1.1'}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online==null?'…':online?'✓':'!'}</span></div>
+  <button class="primary" style="width:100%;margin-bottom:12px" data-router>Open router settings (LuCI)</button>
   <div class="netgrid">
-    ${card('Download now',dl?fmtRate(dl.state,A(dl,'unit_of_measurement')):'—',pdl?Math.round(+pdl.state||0)+' packets/s':'')}
-    ${card('Upload now',ul?fmtRate(ul.state,A(ul,'unit_of_measurement')):'—',pul?Math.round(+pul.state||0)+' packets/s':'')}
+    ${upnpLive?card('Download now',dl?fmtRate(dl.state,A(dl,'unit_of_measurement')):'—',pdl?Math.round(+pdl.state||0)+' packets/s':''):''}
+    ${upnpLive?card('Upload now',ul?fmtRate(ul.state,A(ul,'unit_of_measurement')):'—',pul?Math.round(+pul.state||0)+' packets/s':''):''}
     ${card('Internet latency',lat(NET.lat),'from this phone')}
     ${card('Home Assistant',lat(NET.haLat),'response time')}
-    ${rx?card('Downloaded',fmtSize(rx.state,A(rx,'unit_of_measurement')),'since router restart'):''}
-    ${tx?card('Uploaded',fmtSize(tx.state,A(tx,'unit_of_measurement')),'since router restart'):''}
+    ${upnpLive&&rx?card('Downloaded',fmtSize(rx.state,A(rx,'unit_of_measurement')),'since router restart'):''}
+    ${upnpLive&&tx?card('Uploaded',fmtSize(tx.state,A(tx,'unit_of_measurement')),'since router restart'):''}
   </div>`;
-  if(dl&&NET.hist)h+=`<h2>Download, last 24 hours</h2><div class="mcard">${spark(NET.hist[dl.entity_id],A(dl,'unit_of_measurement'))}</div>`;
-  if(ul&&NET.hist)h+=`<h2>Upload, last 24 hours</h2><div class="mcard">${spark(NET.hist[ul.entity_id],A(ul,'unit_of_measurement'))}</div>`;
-  if(priv)h+=`<p class="hint">Your Deco's internet address (${esc(ip.state)}) is a private one, so it sits behind another router — usually your ISP's modem. That's called double NAT; it's fine for browsing but can cause trouble with gaming, video calls or remote access. Putting the modem in bridge mode fixes it.</p>`;
+  if(!upnpLive)h+=`<p class="hint" style="margin-top:8px">Live speeds and data use need UPnP on the router: in LuCI install <b>luci-app-upnp</b> (System → Software), turn it on under Services → UPnP, then add the <b>UPnP/IGD</b> integration in Home Assistant. Vesta picks it up automatically.</p>`;
+  if(upnpLive&&dl&&NET.hist)h+=`<h2>Download, last 24 hours</h2><div class="mcard">${spark(NET.hist[dl.entity_id],A(dl,'unit_of_measurement'))}</div>`;
+  if(upnpLive&&ul&&NET.hist)h+=`<h2>Upload, last 24 hours</h2><div class="mcard">${spark(NET.hist[ul.entity_id],A(ul,'unit_of_measurement'))}</div>`;
+  if(upnpLive&&priv)h+=`<p class="hint">Your router's internet address (${esc(ip.state)}) is a private one, so it sits behind another router — usually your ISP's modem. That's called double NAT; it's fine for browsing but can cause trouble with gaming, video calls or remote access. Putting the modem in bridge mode fixes it.</p>`;
   if(phones.length){h+='<h2>Phones on Wi-Fi</h2>'+phones.map(p=>{const dbm=p.sig?+p.sig.state:NaN,on=p.ssid&&!['<not connected>','unknown','unavailable',''].includes(p.ssid);
     const bits=[];if(on&&!isNaN(dbm))bits.push(bars(dbm)+dbm+' dBm');if(on&&p.link&&!isNaN(+p.link.state))bits.push(p.link.state+' Mbps link');if(p.ip&&on)bits.push('IP '+esc(p.ip.state));if(p.type&&!on)bits.push(esc(p.type.state));
     return `<div class="mcard"><div style="display:flex;justify-content:space-between"><b style="font-size:15px">${esc(p.name)}</b><span class="meta">${on?esc(p.ssid):['unknown','unavailable'].includes(p.ssid)?'Waiting for phone data':'Not on Wi-Fi'}</span></div>${bits.length?`<div class="meta" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">${bits.map(b=>`<span style="display:inline-flex;align-items:center">${b}</span>`).join('')}</div>`:''}</div>`}).join('')}
-  if(people.length)h+='<h2>Who\'s home</h2>'+people.map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':p.state==='unknown'?'Unknown':esc(p.state)}</span></div>`).join('');
-  h+='<p class="hint" style="margin-top:8px">Connected-device lists and per-device controls live in the Deco app.</p>';
+  const routerDevs=st.filter(s=>s.entity_id.startsWith('device_tracker.')&&A(s,'source_type')==='router');
+  if(routerDevs.length){const on=routerDevs.filter(d=>d.state==='home');h+=`<h2>Connected devices · ${on.length} online</h2>`+routerDevs.sort((a,b)=>(a.state==='home'?0:1)-(b.state==='home'?0:1)||(A(a,'friendly_name')||'').localeCompare(A(b,'friendly_name')||'')).map(d=>`<div class="mcard who"><div><span>${esc((A(d,'friendly_name')||A(d,'host_name')||d.entity_id).trim())}</span>${A(d,'ip')?`<div class="meta">${esc(A(d,'ip'))}</div>`:''}</div><span class="meta">${d.state==='home'?'Online':'Offline'}</span></div>`).join('')}
+  else h+='<p class="hint">To list every device on your Wi-Fi here, add the <b>OpenWrt (LuCI)</b> or <b>Ubus</b> integration in Home Assistant with your router login.</p>';
+  if(people.filter(p=>A(p,'source_type')!=='router').length)h+='<h2>Who\'s home</h2>'+people.filter(p=>A(p,'source_type')!=='router').map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':p.state==='unknown'?'Unknown':esc(p.state)}</span></div>`).join('');
   box.innerHTML=h;
 }
-$('netList').addEventListener('click',e=>{if(e.target.closest('[data-deco]'))openDeco()});
+$('netList').addEventListener('click',e=>{if(e.target.closest('[data-router]'))openRouter()});
 
 // ---------- resync with Home Assistant every time the app opens ----------
 var RS={at:0};
