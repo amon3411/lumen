@@ -28,6 +28,9 @@
   html{--rad:24px} html.corners-square{--rad:10px}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Google Sans','Figtree','DM Sans',system-ui,sans-serif;transition:background .3s;background:var(--bg);color:var(--text);min-height:100vh;padding:calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;max-width:760px;margin:0 auto}
+  [hidden]{display:none!important}
+  .pill{cursor:pointer}
+  .sheet h3 .shx{display:flex;gap:10px;align-items:center}
   header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px}
   h1{font-size:28px;font-weight:500;letter-spacing:-.3px}
   .sub{color:var(--muted);font-size:13px;margin-top:2px}
@@ -353,14 +356,14 @@
 
 <div class="sheet" id="sheet">
   <div class="grab"></div>
-  <h3><span id="shName"></span><button class="sw" id="shSw" aria-label="Toggle"></button></h3>
+  <h3><span id="shName"></span><span class="shx"><button class="sw" id="shSw" aria-label="Turn on or off"></button><button class="x" data-close aria-label="Close">×</button></span></h3>
   <div class="meta" id="shRoom"></div>
-  <label>Room</label><select id="shRoomSel"></select>
-  <label><span id="shWLbl">Bulb wattage</span> <output>for power estimates</output></label><input id="shW" class="finput" type="number" min="1" max="300" step="0.5" style="width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px">
   <div id="briBox"><label>Brightness <output id="briOut"></output></label><input type="range" id="bri" min="1" max="100"></div>
   <div class="mode" id="modeBox"><button data-m="white">White</button><button data-m="color">Color</button></div>
   <div id="whiteBox"><label>Warmth <output id="tempOut"></output></label><input type="range" id="temp" min="2200" max="6500" step="100"></div>
   <div id="colorBox"><label>Color</label><div class="wheelWrap"><canvas id="wheel" width="480" height="480"></canvas><div id="marker"></div></div><div class="hexRow"><span id="hexDot"></span><code id="hexOut"></code></div></div>
+  <label>Room</label><select id="shRoomSel"></select>
+  <label><span id="shWLbl">Bulb wattage</span> <output>for power estimates</output></label><input id="shW" class="finput" type="number" min="1" max="300" step="0.5" style="width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:14px">
   <div id="fxBox"><label>Lights in this group</label><div id="fxMembers"></div></div>
   <div class="btnrow"><button class="ghost" id="fxBtn">Group with other lights</button><button class="ghost" id="hideBtn">Hide from Vesta</button></div>
 </div>
@@ -533,7 +536,7 @@ const DEFAULT={lights:[
   D(8,'Porch','Outdoor',false,100,'white',3000,'#ffc857',10,'Gosund'),
 ],schedules:[{time:'06:45',room:'Kitchen',action:'on',en:true},{time:'22:30',room:'All',action:'Nightlight',en:true}],room:'All',scene:null,ha:{url:'',token:'',use:false}};
 let S;try{S=JSON.parse(localStorage.getItem('lumen'))||structuredClone(DEFAULT)}catch(e){S=structuredClone(DEFAULT)}
-S.ha=S.ha||{url:'',token:'',use:false};
+S.ha=S.ha||{url:'',token:'',use:false};S.lights=S.lights||structuredClone(DEFAULT.lights);S.schedules=S.schedules||[];S.room=S.room||'All';
 S.display=Object.assign({size:'m',layout:'grid',group:'room',showBrand:true,showStats:true,switches:false},S.display);
 S.hidden=S.hidden||{};
 S.look=Object.assign({preset:'material',theme:'dark',accent:'#f7c948',tiles:'home',tileColor:'light',corners:'round',home:'Home'},S.look);
@@ -548,16 +551,23 @@ if(!S.fixtures){S.fixtures=[];
     S.fixtures.push({id:'fx_demo',name:'Ceiling Fan',room:'Bedroom',members:ids});
   }}
 S.lights.forEach(l=>{for(const k in CAPS)if(l[k]===undefined)l[k]=CAPS[k]});
-const save=()=>{try{localStorage.setItem('lumen',JSON.stringify(S))}catch(e){}};
+const saveNow=()=>{clearTimeout(saveNow.t);saveNow.t=0;try{localStorage.setItem('lumen',JSON.stringify(S))}catch(e){}};
+const save=()=>{if(!saveNow.t)saveNow.t=setTimeout(saveNow,500)};
+addEventListener('pagehide',saveNow);document.addEventListener('visibilitychange',()=>{if(document.hidden&&saveNow.t)saveNow()});
 const $=id=>document.getElementById(id);
+// Only touch the page when something actually changed — keeps scrolling smooth and stops taps from being lost mid-update
+const setHTML=(el,h)=>{if(el&&el._h!==h){el.innerHTML=h;el._h=h}};
 let cur=null,partyTimer=null;
 
 // ---------- Home Assistant ----------
 const HA={cfgEnts:new Set(),live:false,lights:[],meta:{},lastLocal:0,timers:{},poll:null,dragging:false};
 const LIGHTS=()=>(HA.live||S.ha.use?HA.lights:S.lights).filter(l=>!(String(l.id) in S.hidden));
 async function haFetch(path,body,text){
-  const r=await fetch(S.ha.url.replace(/\/$/,'')+path,{method:body?'POST':'GET',
-    headers:{Authorization:'Bearer '+S.ha.token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),10000);let r;
+  try{r=await fetch(S.ha.url.replace(/\/$/,'')+path,{method:body?'POST':'GET',signal:ctl.signal,
+    headers:{Authorization:'Bearer '+S.ha.token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined})}
+  catch(e){throw e.name==='AbortError'?new TypeError('Home Assistant took too long to answer'):e}
+  finally{clearTimeout(to)}
   if(!r.ok)throw new Error(r.status===401?'Token was rejected (401).':'Home Assistant returned '+r.status+'.');
   return text?r.text():r.json();
 }
@@ -581,17 +591,22 @@ function fromHA(s,prev){
     t:a.color_temp_kelvin||p.t||3000,color:a.hs_color?hsvToHex(a.hs_color[0],a.hs_color[1]/100):(p.color||'#ffc857'),
     w:8,canDim,canColor,canTemp,minK:a.min_color_temp_kelvin||2200,maxK:a.max_color_temp_kelvin||6500};
 }
-async function pull(){
-  const st=await haFetch('/api/states');HA.all=st;HA.lastFull=Date.now();
+async function pull(pre){
+  const st=pre||await haFetch('/api/states');HA.all=st;HA.lastFull=Date.now();
   const prev=Object.fromEntries(HA.lights.map(l=>[l.id,l]));
   HA.lights=st.filter(s=>s.entity_id.startsWith('light.')||(S.display.switches&&s.entity_id.startsWith('switch.')&&!HA.cfgEnts.has(s.entity_id))).map(s=>fromHA(s,prev[s.entity_id]))
     .sort((a,b)=>a.room.localeCompare(b.room)||(a.na-b.na)||a.name.localeCompare(b.name));
   if(cur&&!cur.isFx)cur=HA.lights.find(l=>l.id===cur.id)||null;
+  cacheLights();
 }
+// Remember the last lights so Vesta opens instantly while it reconnects
+function cacheLights(){clearTimeout(cacheLights.t);cacheLights.t=setTimeout(()=>{try{localStorage.setItem('vestaCache',JSON.stringify({lights:HA.lights,meta:HA.meta}))}catch(e){}},1500)}
+if(S.ha.use&&!HA.lights.length){try{const c=JSON.parse(localStorage.getItem('vestaCache'));if(c&&c.lights){HA.lights=c.lights.map(l=>({...l,na:l.na}));HA.meta=c.meta||{}}}catch(e){}}
 function push(...ls){
   ls=ls.filter(l=>!l.na);if(!ls.length&&HA.live)return;
   if(!HA.live){if(S.ha.use)toast("Offline — can't reach Home Assistant");return}HA.lastLocal=Date.now();
-  ls.forEach(l=>{clearTimeout(HA.timers[l.id]);HA.timers[l.id]=setTimeout(()=>send(l),180)});
+  ls.forEach(l=>{const T=HA.timers[l.id]||(HA.timers[l.id]={});T.l=l;if(T.h)return;
+    T.h=setTimeout(()=>{T.h=0;T.last=Date.now();send(T.l)},Math.max(40,(T.last||0)+250-Date.now()))});
 }
 async function send(l){
   try{
@@ -623,7 +638,7 @@ async function findHA(){
 async function connect(quiet){
   $('haMsg').className='msg';$('haMsg').textContent='Connecting…';
   try{
-    try{await haFetch('/api/')}catch(e){if(!(e&&e.name==='TypeError'&&S.ha.token&&await findHA()))throw e;toast('Found Home Assistant at its new address');await haFetch('/api/')}await loadMeta();HA.live=true;HA.lights=[];await pull();
+    try{await haFetch('/api/')}catch(e){if(!(e&&e.name==='TypeError'&&S.ha.token&&await findHA()))throw e;toast('Found Home Assistant at its new address');await haFetch('/api/')}const [,st0]=await Promise.all([loadMeta(),haFetch('/api/states')]);HA.live=true;await pull(st0);
     S.ha.use=true;S.room='All';S.scene=null;save();
     $('haMsg').className='msg ok';$('haMsg').textContent=`Connected — found ${HA.lights.length} device${HA.lights.length===1?'':'s'}${HA.lights.length?'':'. Add lights with the + button'}.`;
     setStatus('live','Home Assistant');
@@ -725,8 +740,10 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
 
 // ---------- render ----------
-function render(){
-  const L=LIGHTS();if(!rooms().includes(S.room))S.room='All';
+let _rq=0;
+function render(){if(!_rq)_rq=requestAnimationFrame(()=>{_rq=0;renderNow()})}
+function renderNow(){
+  const L=LIGHTS(),V=S.view,onLights=V==='devices';if(!rooms().includes(S.room))S.room='All';
   const on=L.filter(l=>l.on);
   $('sOn').textContent=on.length+'/'+L.length;
   $('sW').textContent=fmtW(powerNow());$('sDay').textContent=fmtWh(avgDaily());
@@ -734,23 +751,31 @@ function render(){
   $('summary').textContent=L.length?(on.length?`${on.length} light${on.length>1?'s':''} on`:'Everything is off'):'No lights found';
   const roomOn=L.some(l=>inRoom(l)&&l.on);
   $('masterBtn').textContent=(roomOn?'Turn off ':'Turn on ')+(S.room==='All'?'all':S.room);
-  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':S.ha.use?"Can't reach Home Assistant at "+S.ha.url+". Make sure you're on your home Wi-Fi — retrying automatically. Tap here if its address changed.":'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
+  $('homeName').textContent=onLights?(S.look.home||'Home'):({media:'Media',cameras:'Cameras',network:'Network',routines:'Routines'}[V]||'Home');
+  $('summary').hidden=$('masterBtn').hidden=$('addTop').hidden=!onLights;
+  $('note').hidden=!onLights&&HA.live;
+  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':S.ha.use?"Can't reach Home Assistant at "+S.ha.url+". Make sure you're on your home Wi-Fi — retrying automatically. Tap here if its address changed.":'Demo mode — lights are simulated. Tap here to connect real lights.';
 
+  if(onLights){
   const myP=S.presets.filter(p=>S.room==='All'||p.room==='All'||p.room===S.room);
-  $('scenes').innerHTML=myP.map(p=>`<button class="scene ${S.scene==='p:'+p.id?'active':''}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join('')
+  setHTML($('scenes'),myP.map(p=>`<button class="scene ${S.scene==='p:'+p.id?'active':''}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join('')
     +SCENES.map(s=>`<button class="scene ${S.scene===s.n?'active':''}" data-s="${s.n}"><span class="dot" style="background:${s.c}"></span>${s.n}</button>`).join('')
-    +`<button class="scene" id="presetBtn" style="color:var(--muted)">＋ Preset</button>`;
-  const fa=$('fAction'),fv=fa.value;
+    +`<button class="scene" id="presetBtn" style="color:var(--muted)">＋ Preset</button>`);
+  }
+  if(V==='routines'){const fa=$('fAction'),fv=fa.value;
   fa.innerHTML=`<option value="on">Turn on</option><option value="off">Turn off</option>`+S.presets.map(p=>`<option value="p:${p.id}">Preset: ${esc(p.name)}</option>`).join('')+SCENES.filter(s=>s.set!=='party').map(s=>`<option value="${s.n}">Scene: ${s.n}</option>`).join('');
-  if(fv&&[...fa.options].some(o=>o.value===fv))fa.value=fv;
-  $('tabs').innerHTML=rooms().map(r=>{const n=L.filter(l=>inRoom(l,r)&&l.on).length;return `<button class="tab ${S.room===r?'active':''}" data-r="${esc(r)}">${esc(r)}${n?' · '+n:''}</button>`}).join('');
+  if(fv&&[...fa.options].some(o=>o.value===fv))fa.value=fv;}
   const Dp=S.display;
   const home=S.look.tiles==='home';
-  document.body.className=`size-${Dp.size} layout-${Dp.layout}${Dp.showBrand?'':' hide-brand'} tiles-${home?'home':'cards'} brand-${S.look.preset||'material'}`;
+  const bc=`size-${Dp.size} layout-${Dp.layout}${Dp.showBrand?'':' hide-brand'} tiles-${home?'home':'cards'} brand-${S.look.preset||'material'}`;
+  if(document.body.className!==bc)document.body.className=bc;
   $('tileHint').hidden=!home;
-  $('vDevices').hidden=S.view!=='devices';$('vRoutines').hidden=S.view!=='routines';$('vMedia').hidden=S.view!=='media';renderMedia();$('vCameras').hidden=S.view!=='cameras';$('vNetwork').hidden=S.view!=='network';renderCams();renderNet();
-  document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.view));
-  $('statsBox').hidden=!Dp.showStats;
+  $('vDevices').hidden=V!=='devices';$('vRoutines').hidden=V!=='routines';$('vMedia').hidden=V!=='media';$('vCameras').hidden=V!=='cameras';$('vNetwork').hidden=V!=='network';
+  renderMedia();renderCams();renderNet();
+  document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===V));
+  $('statsBox').hidden=!Dp.showStats||!onLights;
+  if(onLights){
+  setHTML($('tabs'),rooms().map(r=>{const n=L.filter(l=>inRoom(l,r)&&l.on).length;return `<button class="tab ${S.room===r?'active':''}" data-r="${esc(r)}">${esc(r)}${n?' · '+n:''}</button>`}).join(''));
   const card=l=>{const c=lc(l);
     if(home){const [fill,ink]=tileFill(l);return `
     <div class="light ${l.on?'on':''} ${l.na?'na':''}" data-tile="${esc(l.id)}" style="--c:${c};--fill:${fill};--ink:${ink};--b:${l.canDim?l.b:100}%">
@@ -773,22 +798,24 @@ function render(){
     </div>`};
   const vis=viewItems().filter(l=>inRoom(l));
   if(Dp.group==='none'||!GROUPERS[Dp.group]){
-    $('grid').innerHTML=vis.length?`<div class="grid">${vis.map(card).join('')}</div>`:'<div class="empty" style="margin-top:12px">No lights here yet. Open a light and choose this room to move it.</div>';
+    setHTML($('grid'),vis.length?`<div class="grid">${vis.map(card).join('')}</div>`:'<div class="empty" style="margin-top:12px">No lights here yet. Open a light and choose this room to move it.</div>');
   }else{
     const g=GROUPERS[Dp.group],buckets={};
     vis.forEach(l=>(buckets[g.key(l)]??=[]).push(l));
     let keys=g.order(Object.keys(buckets));
     keys=keys.filter(k=>buckets[k]||(Dp.group==='room'&&(S.room==='All'||S.room===k)));
-    $('grid').innerHTML=keys.map(k=>{const ls=buckets[k]||[],n=ls.filter(l=>l.on).length;return `<div class="gsec">
+    setHTML($('grid'),keys.map(k=>{const ls=buckets[k]||[],n=ls.filter(l=>l.on).length;return `<div class="gsec">
       <div class="ghead" style="${(()=>{const cs=ls.filter(l=>l.on).map(l=>mixHex(lc(l),'#000000',.2));return cs.length?`--grad:linear-gradient(100deg,${cs.length>1?cs.join(','):cs[0]+','+mixHex(cs[0],'#000000',.45)})`:''})()}"><div><b>${esc(k)}</b><small>${ls.length?`${n}/${ls.length} on`:'empty'}</small></div>${ls.length?`<button class="sw ${n?'on':''}" data-g="${esc(k)}" aria-label="Toggle ${esc(k)}"></button>`:''}</div>
-      ${ls.length?`<div class="grid">${ls.map(card).join('')}</div>`:'<div class="empty">No lights yet. Open a light and choose this room to move it.</div>'}</div>`}).join('')||'<div class="empty" style="margin-top:12px">No lights found.</div>';
+      ${ls.length?`<div class="grid">${ls.map(card).join('')}</div>`:'<div class="empty">No lights yet. Open a light and choose this room to move it.</div>'}</div>`}).join('')||'<div class="empty" style="margin-top:12px">No lights found.</div>');
+  }
   }
   if($('disp').classList.contains('open'))renderDisp();
   if(cur&&cur.isFx){const f=S.fixtures.find(x=>x.id===cur.id);cur=f?fxProxy(f):null;if(!cur)closeAll()}
 
-  $('schedList').innerHTML=S.schedules.map((s,i)=>`<div class="sched"><div>${s.time}<small>${esc(s.room)} — ${s.action==='on'?'Turn on':s.action==='off'?'Turn off':s.action.startsWith('p:')?'Preset: '+esc(S.presets.find(p=>'p:'+p.id===s.action)?.name||'(deleted)'):'Scene: '+s.action}</small></div>
-    <div style="display:flex;gap:8px;align-items:center"><button class="sw ${s.en?'on':''}" data-se="${i}" aria-label="Enable"></button><button class="x" data-sd="${i}" aria-label="Delete">×</button></div></div>`).join('')||'<p class="sub" style="margin-bottom:8px">No schedules yet.</p>';
-  $('fRoom').innerHTML=rooms().map(r=>`<option>${esc(r)}</option>`).join('');
+  if(V==='routines'){
+  setHTML($('schedList'),S.schedules.map((s,i)=>`<div class="sched"><div>${s.time}<small>${esc(s.room)} — ${s.action==='on'?'Turn on':s.action==='off'?'Turn off':s.action.startsWith('p:')?'Preset: '+esc(S.presets.find(p=>'p:'+p.id===s.action)?.name||'(deleted)'):'Scene: '+s.action}</small></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="sw ${s.en?'on':''}" data-se="${i}" aria-label="Enable"></button><button class="x" data-sd="${i}" aria-label="Delete">×</button></div></div>`).join('')||'<p class="sub" style="margin-bottom:8px">No schedules yet.</p>');
+  const fr=$('fRoom'),frv=fr.value;fr.innerHTML=rooms().map(r=>`<option>${esc(r)}</option>`).join('');if(frv&&rooms().includes(frv))fr.value=frv;}
   if(cur)renderSheet();
   save();
 }
@@ -815,7 +842,7 @@ function startParty(room){
 function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
 
 // ---------- light sheet ----------
-function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
+function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;drawWheel();renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
 function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh','rtrSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
 function renderSheet(){
   const l=cur;$('shName').textContent=l.name;
@@ -823,7 +850,7 @@ function renderSheet(){
   $('shRoom').textContent=roomOf(l)+(l.isFx?` · ${l.members.length} lights`:'')+(pf?` · part of ${pf.name}`:'')+(l.brand?' · '+l.brand:'');
   $('fxBox').hidden=!l.isFx;$('hideBtn').hidden=!!l.isFx;$('fxBtn').textContent=l.isFx||pf?'Edit group':'Group with other lights';
   if(l.isFx)$('fxMembers').innerHTML=l.members.map(m=>`<div class="mrow" data-id="${esc(m.id)}"><i class="mdot" style="${m.on?`background:${lc(m)};box-shadow:0 0 8px ${lc(m)}`:''}"></i><span>${esc(m.name)}<br><small>${m.na?'Unavailable':m.on?(m.canDim?m.b+'%':'On'):'Off'}</small></span><button class="sw ${m.on?'on':''}" data-t="${esc(m.id)}" aria-label="Toggle ${esc(m.name)}"></button></div>`).join('');
-  const rl=roomList();$('shRoomSel').innerHTML=rl.map(r=>`<option ${r===roomOf(l)?'selected':''}>${esc(r)}</option>`).join('');
+  const rl=roomList();if(document.activeElement!==$('shRoomSel'))$('shRoomSel').innerHTML=rl.map(r=>`<option ${r===roomOf(l)?'selected':''}>${esc(r)}</option>`).join('');
   $('shSw').className='sw'+(l.on?' on':'');
   $('briBox').hidden=!l.canDim;
   $('bri').value=l.b;$('briOut').textContent=l.b+'%';$('bri').style.setProperty('--c',lc(l));
@@ -838,11 +865,12 @@ function renderSheet(){
   const m=$('marker');m.style.left=(R+Math.cos(a)*s*R)+'px';m.style.top=(R+Math.sin(a)*s*R)+'px';m.style.background=l.color;
   $('hexDot').style.background=l.color;$('hexOut').textContent=l.color.toUpperCase();
 }
-(function drawWheel(){const c=$('wheel'),ctx=c.getContext('2d'),N=c.width,R=N/2,img=ctx.createImageData(N,N);
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=x-R,dy=y-R,d=Math.hypot(dx,dy);if(d>R)continue;
-    let h=Math.atan2(dy,dx)*180/Math.PI;if(h<0)h+=360;const n=parseInt(hsvToHex(h,d/R).slice(1),16),i=(y*N+x)*4;
-    img.data[i]=n>>16&255;img.data[i+1]=n>>8&255;img.data[i+2]=n&255;img.data[i+3]=d>R-1.5?Math.round((R-d)/1.5*255):255}
-  ctx.putImageData(img,0,0)})();
+// Drawn the first time a light's controls open (not at startup), with plain math instead of hex strings
+function drawWheel(){if(drawWheel.done)return;drawWheel.done=1;const c=$('wheel'),ctx=c.getContext('2d'),N=c.width,R=N/2,img=ctx.createImageData(N,N),D=img.data;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=x-R,dy=y-R,d=Math.sqrt(dx*dx+dy*dy);if(d>R)continue;
+    let h=Math.atan2(dy,dx)*57.29578;if(h<0)h+=360;const s=d/R,i=(y*N+x)*4,f=n=>{const k=(n+h/60)%6;return 255*(1-s*Math.max(0,Math.min(k,4-k,1)))};
+    D[i]=f(5);D[i+1]=f(3);D[i+2]=f(1);D[i+3]=d>R-1.5?(R-d)/1.5*255:255}
+  ctx.putImageData(img,0,0)}
 function pickColor(e){if(!cur)return;const r=$('wheel').getBoundingClientRect(),R=r.width/2;
   const dx=e.clientX-r.left-R,dy=e.clientY-r.top-R;let h=Math.atan2(dy,dx)*180/Math.PI;if(h<0)h+=360;
   setCur({color:hsvToHex(h,Math.min(Math.hypot(dx,dy)/R,1)),mode:'color',on:true})}
@@ -871,6 +899,8 @@ $('bri').oninput=e=>{HA.dragging=true;setCur({b:+e.target.value,on:true})};
 $('temp').oninput=e=>{HA.dragging=true;setCur({t:+e.target.value,mode:'white',on:true})};
 ['bri','temp'].forEach(i=>$(i).addEventListener('change',()=>{HA.dragging=false}));
 $('backdrop').onclick=closeAll;
+document.addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeAll()});
+$('pill').onclick=()=>$('gearBtn').click();
 // swipe a sheet down to close it
 document.querySelectorAll('.sheet').forEach(sh=>{
   let y0=0,dy=0,t0=0,drag=false;
@@ -926,10 +956,10 @@ function mediaDevices(){
 function mpPic(a){const p=a.entity_picture;if(!p)return '';return p.startsWith('http')?p:S.ha.url.replace(/\/$/,'')+p}
 function renderMedia(){
   const box=$('mediaList');if(!box||S.view!=='media'||MP.busy||(document.activeElement&&document.activeElement.tagName==='SELECT'&&box.contains(document.activeElement)))return;
-  if(!HA.live){box.innerHTML='<p class="mempty">Connect Vesta to Home Assistant (link icon) to control your speakers and TVs.</p>';return}
+  if(!HA.live){box._h=null;box.innerHTML='<p class="mempty">Connect Vesta to Home Assistant (tap the 🔗 button at the top) to control your speakers and TVs.</p>';return}
   const ds=mediaDevices();
-  if(!ds.length){box.innerHTML='<p class="mempty">No speakers or TVs found in Home Assistant.</p>';return}
-  box.innerHTML=ds.map((d,i)=>{
+  if(!ds.length){box._h=null;box.innerHTML='<p class="mempty">No speakers or TVs found in Home Assistant.</p>';return}
+  setHTML(box,ds.map((d,i)=>{
     const a=d.s.attributes,ia=d.info.attributes,f=a.supported_features||0,na=d.s.state==='unavailable'&&!d.remote,off=['off','standby','unavailable'].includes(d.s.state);
     const sub=ia.media_title?[ia.media_title,ia.media_artist||ia.media_series_title||ia.app_name].filter(Boolean).join(' · '):(d.s.state==='unavailable'?'Unavailable':(a.app_name||d.s.state.replace('_',' ')));
     const pic=mpPic(ia);
@@ -948,7 +978,7 @@ function renderMedia(){
       if(f&2048&&(a.source_list||[]).length&&!na)h+=`<select data-m="source"><option value="">${esc(a.source||'Choose a source…')}</option>${a.source_list.map(x=>`<option>${esc(x)}</option>`).join('')}</select>`;
     }
     return h+'</div>';
-  }).join('');
+  }).join(''));
   MP.list=ds;
   if(MP.tv)MP.tv=ds.find(x=>x.n===MP.tv.n)||MP.tv;
 }
@@ -1001,7 +1031,7 @@ const camStates=()=>(HA.all||[]).filter(s=>s.entity_id.startsWith('camera.'));
 const camSnap=c=>`${base()}/api/camera_proxy/${c.entity_id}?token=${encodeURIComponent(c.attributes.access_token||'')}&t=${Date.now()}`;
 function renderCams(){
   if(!CAM)return;const box=$('camList');if(!box||S.view!=='cameras'){clearInterval(CAM.t);CAM.t=null;return}
-  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your cameras.</p>';return}
+  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (tap the 🔗 button at the top) to see your cameras.</p>';return}
   const cs=camStates();
   if(!cs.length){box.innerHTML='<p class="mempty">No cameras in Home Assistant yet.<br><br>Your Ring cameras show up here once ring-mqtt is set up, and your Yi Dome once it has the yi-hack firmware and is added to Home Assistant.</p>';return}
   const have=[...box.querySelectorAll('[data-cam]')].map(e=>e.dataset.cam).join();
@@ -1059,8 +1089,8 @@ function openRouter(){
 function renderNet(){
   const box=$('netList');if(!box||S.view!=='network')return;
   const rtOn=typeof RTS!=='undefined'&&!!(RTS.data&&!RTS.err);if(typeof RTS!=='undefined'){renderRouter();rtLoad()}
-  if(!HA.live&&rtOn){box.innerHTML='<button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
-  if(!HA.live){box.innerHTML='<p class="mempty">Connect to Home Assistant (link icon) to see your network.</p><button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
+  if(!HA.live&&rtOn){box._h=null;box.innerHTML='<button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
+  if(!HA.live){box._h=null;box.innerHTML='<p class="mempty">Connect to Home Assistant (tap the 🔗 button at the top) to see your network.</p><button class="primary" style="width:100%" data-router>Open router settings (LuCI)</button>';return}
   const st=HA.all||[],f=re=>st.find(s=>re.test(s.entity_id)),A=(x,k)=>x?.attributes?.[k];
   const dl=f(/^sensor\..*(?<!packet_)download_speed$/),ul=f(/^sensor\..*(?<!packet_)upload_speed$/),ip=f(/^sensor\..*external_ip$/),wan=f(/^(binary_)?sensor\..*wan_status$/);
   const rx=f(/^sensor\..*data_received$/),tx=f(/^sensor\..*data_sent$/),pdl=f(/^sensor\..*packet_download_speed$/),pul=f(/^sensor\..*packet_upload_speed$/);
@@ -1097,7 +1127,7 @@ function renderNet(){
   else if(routerDevs.length){const on=routerDevs.filter(d=>d.state==='home');h+=`<h2>Connected devices · ${on.length} online</h2>`+routerDevs.sort((a,b)=>(a.state==='home'?0:1)-(b.state==='home'?0:1)||(A(a,'friendly_name')||'').localeCompare(A(b,'friendly_name')||'')).map(d=>`<div class="mcard who"><div><span>${esc((A(d,'friendly_name')||A(d,'host_name')||d.entity_id).trim())}</span>${A(d,'ip')?`<div class="meta">${esc(A(d,'ip'))}</div>`:''}</div><span class="meta">${d.state==='home'?'Online':'Offline'}</span></div>`).join('')}
   else h+='<p class="hint">Sign in to your router above to see and control every device on your Wi-Fi.</p>';
   if(people.filter(p=>A(p,'source_type')!=='router').length)h+='<h2>Who\'s home</h2>'+people.filter(p=>A(p,'source_type')!=='router').map(p=>`<div class="mcard who"><span>${esc((p.attributes.friendly_name||p.entity_id).trim())}</span><span class="meta">${p.state==='home'?'Home':p.state==='not_home'?'Away':p.state==='unknown'?'Unknown':esc(p.state)}</span></div>`).join('');
-  box.innerHTML=h;
+  setHTML(box,h);
 }
 $('netList').addEventListener('click',e=>{if(e.target.closest('[data-router]'))openRouter()});
 // ---------- OpenWrt router controls (talks to the router directly over ubus) ----------
@@ -1186,12 +1216,12 @@ function rtBtn(act,arg,label,cls){const key=act+':'+arg,armed=RTS.arm===key;
 function renderRouter(){
   const box=$('rtrBox');if(!box)return;
   if(!RT.pass&&!RT.sid){
-    box.innerHTML=`<div class="mcard"><b style="font-size:16px">Control your router</b><p class="fdesc">Sign in with your OpenWrt password to see who's on your Wi-Fi, kick or block devices, change Wi-Fi settings and restart the router — right from Vesta.</p>
+    box._h=null;box.innerHTML=`<div class="mcard"><b style="font-size:16px">Control your router</b><p class="fdesc">Sign in with your OpenWrt password to see who's on your Wi-Fi, kick or block devices, change Wi-Fi settings and restart the router — right from Vesta.</p>
       <button class="primary" style="width:100%;margin-top:12px" data-ract="login">Sign in to router</button></div>`;return}
   if(RTS.err&&!RTS.data||RTS.err==='auth'){
     const msg=RTS.err==='auth'?'The router rejected the password.':RTS.err==='reach'?`Can't reach the router at ${esc(RT.url)}. Make sure this phone is on your home Wi-Fi.${window.VestaNative?'':' On iPhone or in a browser, also turn on CORS for ubus (see Router settings).'}`:esc(RTS.err);
-    box.innerHTML=`<div class="mcard"><b style="font-size:16px">Router</b><p class="fdesc">${msg}</p><div class="btnrow"><button class="ghost" data-ract="retry">Try again</button><button class="ghost" data-ract="login">Router settings</button></div></div>`;return}
-  if(!RTS.data){box.innerHTML='<div class="mcard"><p class="fdesc">Connecting to your router…</p></div>';return}
+    box._h=null;box.innerHTML=`<div class="mcard"><b style="font-size:16px">Router</b><p class="fdesc">${msg}</p><div class="btnrow"><button class="ghost" data-ract="retry">Try again</button><button class="ghost" data-ract="login">Router settings</button></div></div>`;return}
+  if(!RTS.data){box._h=null;box.innerHTML='<div class="mcard"><p class="fdesc">Connecting to your router…</p></div>';return}
   const {info,board,wan,wl}=RTS.data,mem=info.memory||{},used=mem.total-(mem.available??mem.free),ip=wan?.['ipv4-address']?.[0]?.address;
   const radios={};Object.entries(wl).forEach(([k,v])=>{if(v['.type']==='wifi-device')radios[k]=v});
   const ifaces=Object.entries(wl).filter(([,v])=>v['.type']==='wifi-iface'&&(v.mode||'ap')==='ap');
@@ -1213,7 +1243,7 @@ function renderRouter(){
       <button class="sw ${on?'on':''}" data-ract="wifi" data-arg="${esc(k)}" aria-label="Turn ${esc(v.ssid)} ${on?'off':'on'}"></button></div></div>`}).join('')||'<p class="fdesc">No Wi-Fi networks set up.</p>')+'</div>';
   h+=`<h2>Devices · ${onWifi} on Wi-Fi</h2><div class="mcard">`+(shown.map(d=>`<div class="rrow"><div>
       <b><span class="rdot ${d.wifi?'on':''}"></span>${esc(d.name||'Unknown device')}${d.block?'<span class="rtag">blocked</span>':''}</b>
-      <span class="meta">${[d.ip,d.mac,d.wifi?bars(d.wifi.signal)+d.wifi.signal+' dBm':''].filter(Boolean).join(' · ')}</span></div>
+      <span class="meta" style="display:flex;align-items:center;flex-wrap:wrap;gap:0 6px">${[d.wifi?bars(d.wifi.signal).replace('margin-right:6px','')+'':'',d.ip,d.name?'':d.mac].filter(Boolean).join(' · ')}</span></div>
       <div style="display:flex;gap:6px">${d.wifi?rtBtn('kick',d.mac,'Kick'):''}${d.block?rtBtn('unblock',d.block,'Unblock'):rtBtn('block',d.mac,'Block','warn')}</div></div>`).join('')||'<p class="fdesc">No devices yet.</p>')
     +(devs.length>12?`<button class="ghost" style="width:100%;margin-top:10px" data-ract="all">${RTS.all?'Show fewer':'Show all '+devs.length}</button>`:'')
     +`<p class="hint">Green = on this router's Wi-Fi. Wired devices and devices on your other Velop units show without a dot. Kick disconnects a device from Wi-Fi (it can rejoin); Block cuts its internet until you unblock it.</p></div>`;
@@ -1222,7 +1252,7 @@ function renderRouter(){
     <div class="rrow"><div><b>Reconnect internet</b><span class="meta">Restarts the WAN connection</span></div>${rtBtn('wan','x','Reconnect')}</div>
     <div class="rrow"><div><b>Reboot router</b><span class="meta">Back in about 2 minutes</span></div>${rtBtn('reboot','x','Reboot','warn')}</div>
     <div class="rrow"><div><b>Router settings</b><span class="meta">Address, login, sign out</span></div><button class="rbtn" data-ract="login">Open</button></div></div>`;
-  box.innerHTML=h;
+  setHTML(box,h);
 }
 
 function rtSheet(title,html){$('rtrShTitle').textContent=title;$('rtrShBody').innerHTML=html;$('rtrSh').classList.add('open');$('backdrop').classList.add('open')}
@@ -1344,7 +1374,7 @@ async function haLive(){
     else{ind.classList.remove('show');ind.style.transform=''}});
 })();
 
-$('note').addEventListener('click',()=>{if(S.ha.use&&!HA.live)$('gearBtn').click()});
+$('note').addEventListener('click',()=>{if(!HA.live)$('gearBtn').click()});
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.1.104':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
@@ -1627,7 +1657,7 @@ function openAdd(){
   HA.live?addHome():demoAdd();
 }
 function demoAdd(){
-  body(`<p class="fdesc">You're in demo mode, so this adds a simulated light. To pair real lights, connect Vesta to Home Assistant with the link icon.</p>
+  body(`<p class="fdesc">You're in demo mode, so this adds a simulated light. To pair real lights, connect Vesta to Home Assistant with the 🔗 button at the top.</p>
   <form class="form" id="demoForm" style="margin-top:14px">
     <input id="dName" placeholder="Light name, e.g. Desk Lamp" required maxlength="30">
     <select id="dRoom">${roomList().map(r=>`<option ${r===S.room?'selected':''}>${esc(r)}</option>`).join('')}</select>
@@ -1754,8 +1784,8 @@ $('add').addEventListener('click',e=>{
 });
 $('add').addEventListener('change',e=>{const s=e.target.closest('[data-newroom]');if(s){S.roomMap[s.dataset.newroom]=s.value;render()}});
 $('shRoomSel').onchange=e=>{if(!cur)return;const v=e.target.value;if(cur.isFx){const f=cur.fx;f.room=v;f.members.forEach(m=>S.roomMap[m]=v)}else{S.roomMap[cur.id]=v;const f=fxOf(cur.id);if(f){f.room=v;f.members.forEach(m=>S.roomMap[m]=v)}}render();toast(`${cur.name} moved to ${e.target.value}`)};
-$('addSched').onclick=()=>{$('schedForm').hidden=!$('schedForm').hidden};
-$('schedForm').onsubmit=e=>{e.preventDefault();S.schedules.push({time:$('fTime').value,room:$('fRoom').value,action:$('fAction').value,en:true});S.schedules.sort((a,b)=>a.time.localeCompare(b.time));$('schedForm').hidden=true;render();toast('Schedule added')};
+$('addSched').onclick=()=>{const f=$('schedForm');f.hidden=!f.hidden;$('addSched').textContent=f.hidden?'+ Add schedule':'Cancel';if(!f.hidden){render();setTimeout(()=>$('fTime').focus(),50)}};
+$('schedForm').onsubmit=e=>{e.preventDefault();S.schedules.push({time:$('fTime').value,room:$('fRoom').value,action:$('fAction').value,en:true});S.schedules.sort((a,b)=>a.time.localeCompare(b.time));$('schedForm').hidden=true;$('addSched').textContent='+ Add schedule';render();toast('Schedule added')};
 
 let lastMin='';
 setInterval(()=>{const hm=new Date().toTimeString().slice(0,5);if(hm===lastMin)return;lastMin=hm;

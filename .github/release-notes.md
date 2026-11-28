@@ -1,10 +1,18 @@
-**Vesta 1.7.0 — Control your OpenWrt router**
+**Vesta 1.8.0 — Faster and easier to use**
 
-Sign in to your router from the Network tab (same login as LuCI) and Vesta talks to OpenWrt directly — no Home Assistant integration needed.
+**Quicker**
+- Opens straight to your lights from the last visit while it reconnects, instead of an empty screen.
+- Taps reach your lights in about 40 ms (was ~180 ms), and dragging a brightness or color slider now changes the real light while you drag, not only when you let go.
+- The screen only redraws what changed, so scrolling stays smooth and buttons no longer miss taps during live updates.
+- Connecting to Home Assistant loads everything in parallel; the color wheel is drawn only when first needed; settings save in the background.
+- Requests that hang now give up after 10 seconds instead of freezing a control.
 
-- **Router status:** internet online/offline, WAN IP, uptime, memory and load, refreshed every 10 seconds.
-- **Devices:** everyone on your network with IP, MAC and Wi-Fi signal. **Kick** a device off Wi-Fi or **Block** its internet (tap twice to confirm); **Unblock** any time.
-- **Wi-Fi:** turn each network on or off, and change its name or password.
-- **Router actions:** restart Wi-Fi, reconnect the internet, reboot the router.
+**Clearer**
+- Each tab has its own title; the light buttons and energy stats only show on the Lights tab.
+- Tap the connection status (under the title) to open Home Assistant settings.
+- Light controls: brightness and color come first, with room and wattage below, plus a close (×) button.
+- Router devices show signal bars first and hide the MAC address once a device has a name.
 
-iPhone/browser users: run `uci set uhttpd.main.ubus_cors=1; uci commit uhttpd; /etc/init.d/uhttpd restart` on the router once so Vesta can reach it.
+**Fixed**
+- The "Add schedule" form was always showing; it now opens with the button (which becomes Cancel).
+- Room choice in the schedule form no longer resets itself while you pick.
