@@ -708,7 +708,7 @@ function render(){
   $('summary').textContent=L.length?(on.length?`${on.length} light${on.length>1?'s':''} on`:'Everything is off'):'No lights found';
   const roomOn=L.some(l=>inRoom(l)&&l.on);
   $('masterBtn').textContent=(roomOn?'Turn off ':'Turn on ')+(S.room==='All'?'all':S.room);
-  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':S.ha.use?"Can't reach Home Assistant. Make sure you're on your home Wi-Fi — retrying automatically.":'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
+  $('note').textContent=HA.live?'Live — changes go to Home Assistant. Schedules run while this page is open.':S.ha.use?"Can't reach Home Assistant at "+S.ha.url+". Make sure you're on your home Wi-Fi — retrying automatically. Tap here if its address changed.":'Demo mode — lights are simulated. Tap the link icon to connect real lights.';
 
   const myP=S.presets.filter(p=>S.room==='All'||p.room==='All'||p.room===S.room);
   $('scenes').innerHTML=myP.map(p=>`<button class="scene ${S.scene==='p:'+p.id?'active':''}" data-p="${p.id}"><span class="dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join('')
@@ -1118,9 +1118,10 @@ async function haLive(){
     else{ind.classList.remove('show');ind.style.transform=''}});
 })();
 
+$('note').addEventListener('click',()=>{if(S.ha.use&&!HA.live)$('gearBtn').click()});
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
-$('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.68.105':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
+$('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.1.104':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
 $('haForm').onsubmit=e=>{e.preventDefault();S.ha.url=$('haUrl').value.trim();S.ha.token=$('haToken').value.trim();
   if(!S.ha.url||!S.ha.token){$('haMsg').className='msg err';$('haMsg').textContent='Enter your Home Assistant address and token.';return}connect()};
 $('haDemo').onclick=useDemo;
