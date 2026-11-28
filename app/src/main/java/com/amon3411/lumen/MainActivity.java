@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
         else web.loadUrl("file:///android_asset/lumen.html");
     }
 
-    /** Small bridge so the page can open other apps (like the Deco app). */
+    /** Small bridge so the page can open other apps (like a router or speaker app). */
     class Native {
         @JavascriptInterface
         public boolean openApp(String pkg) {
