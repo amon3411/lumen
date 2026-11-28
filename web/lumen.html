@@ -339,6 +339,7 @@
 <section id="vMedia" hidden>
 <h2>Speakers &amp; TVs</h2>
 <div id="mediaList"></div>
+<div id="bdCard"></div>
 </section>
 
 <p class="note" id="note"></p>
@@ -502,6 +503,42 @@
   <div class="grab"></div>
   <h3><span id="rtrShTitle">Router</span> <button class="x" data-rclose aria-label="Close">×</button></h3>
   <div id="rtrShBody"></div>
+</div>
+
+<div class="sheet" id="bdSh">
+  <div class="grab"></div>
+  <h3><span>Blu-ray</span><button class="mbtn" data-bd="power" aria-label="Power"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button></h3>
+  <div class="meta" id="bdMeta"></div>
+  <div class="apps" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:6px">
+    <button class="ghost" data-bd="TopMenu">Disc menu</button><button class="ghost" data-bd="PopUpMenu">Pop-up menu</button><button class="ghost" data-bd="Options">Options</button>
+  </div>
+  <div class="pad">
+    <span></span><button class="mbtn" data-bd="Up" aria-label="Up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg></button><span></span>
+    <button class="mbtn" data-bd="Left" aria-label="Left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button>
+    <button class="mbtn ok" data-bd="Confirm">OK</button>
+    <button class="mbtn" data-bd="Right" aria-label="Right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button>
+    <span></span><button class="mbtn" data-bd="Down" aria-label="Down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button><span></span>
+  </div>
+  <div class="mrow">
+    <button class="mbtn" data-bd="Return" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button class="mbtn" data-bd="Home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8M5 10v10h14V10"/></svg></button>
+    <button class="mbtn" data-bd="Display" aria-label="Info">i</button>
+  </div>
+  <div class="mrow">
+    <button class="mbtn" data-bd="Prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button class="mbtn" data-bd="Rewind" aria-label="Rewind"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 5v14L2 12zM21 5v14l-9-7z"/></svg></button>
+    <button class="mbtn big" data-bd="Play" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg></button>
+    <button class="mbtn" data-bd="Forward" aria-label="Fast forward"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 5v14l9-7zM3 5v14l9-7z"/></svg></button>
+    <button class="mbtn" data-bd="Next" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+  </div>
+  <div class="mrow">
+    <button class="mbtn" data-bd="Pause" aria-label="Pause"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+    <button class="mbtn" data-bd="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+    <button class="mbtn" data-bd="Eject" aria-label="Eject"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 4 15h16zM4 17h16v3H4z"/></svg></button>
+  </div>
+  <div class="apps" style="grid-template-columns:1fr 1fr">
+    <button class="ghost" data-bd="SubTitle">Subtitles</button><button class="ghost" data-bd="Audio">Audio track</button>
+  </div>
 </div>
 
 <div class="sheet" id="camSh">
@@ -771,7 +808,7 @@ function renderNow(){
   if(document.body.className!==bc)document.body.className=bc;
   $('tileHint').hidden=!home;
   $('vDevices').hidden=V!=='devices';$('vRoutines').hidden=V!=='routines';$('vMedia').hidden=V!=='media';$('vCameras').hidden=V!=='cameras';$('vNetwork').hidden=V!=='network';
-  renderMedia();renderCams();renderNet();
+  renderMedia();renderBD();if(V==='media')bdStatus();renderCams();renderNet();
   document.querySelectorAll('.bnav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===V));
   $('statsBox').hidden=!Dp.showStats||!onLights;
   if(onLights){
@@ -843,7 +880,7 @@ function stopParty(){if(partyTimer){clearInterval(partyTimer);partyTimer=null}}
 
 // ---------- light sheet ----------
 function openSheet(id){cur=viewItems().find(x=>String(x.id)===String(id))||byId(id);if(!cur)return;drawWheel();renderSheet();$('sheet').classList.add('open');$('backdrop').classList.add('open')}
-function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh','rtrSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
+function closeAll(){if($('add').classList.contains('open'))abortFlow();cur=null;['sheet','conn','disp','add','fxEd','energy','presetSh','tvSh','camSh','rtrSh','bdSh'].forEach(i=>$(i).classList.remove('open'));$('backdrop').classList.remove('open')}
 function renderSheet(){
   const l=cur;$('shName').textContent=l.name;
   const pf=!l.isFx&&fxOf(l.id);
@@ -1099,13 +1136,14 @@ function renderNet(){
     return {name:(A(c,'friendly_name')||'').replace(/\s*Wi-?Fi connection$/i,'').trim()||'Phone',ssid:c.state,sig:g('wi_fi_signal_strength'),link:g('wi_fi_link_speed'),ip:g('wi_fi_ip_address'),type:g('network_type'),pub:g('public_ip_address')}});
   if([dl,ul,pdl].some(Boolean))netHistory([dl,ul].filter(Boolean).map(x=>x.entity_id));
   netLatency();
-  const upnpLive=[dl,ul,ip].some(x=>x&&!['unavailable','unknown'].includes(x.state));
+  const upt=f(/^sensor\..*_uptime$/);
+  const upnpLive=[dl,ul,ip,rx].some(x=>x&&!['unavailable','unknown','0.0.0.0'].includes(x.state));
   const router=upnpLive?(A(dl||ul||ip,'friendly_name')||'Router').split(' ')[0]:'OpenWrt router';
   const online=wan?(/on|connected|up/i.test(wan.state)):upnpLive?true:(NET.lat==null?null:NET.lat>0);
   const priv=ip&&/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(ip.state);
   const lat=v=>v==null?'…':v<0?'—':v+' ms';
   const card=(t,v,sub='')=>`<div class="mcard"><span>${t}</span><b>${v}</b>${sub?`<span>${sub}</span>`:''}</div>`;
-  let h=rtOn?'':`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online==null?'Checking…':online?'Internet online':'Internet offline'}${upnpLive&&ip?' · WAN IP '+esc(ip.state):' · 192.168.1.1'}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online==null?'…':online?'✓':'!'}</span></div>`;
+  let h=rtOn?'':`<div class="mcard who"><div><b style="font-size:16px">${esc(router)}</b><div class="meta">${online==null?'Checking…':online?'Internet online':'Internet offline'}${upnpLive&&ip&&!['0.0.0.0','unknown','unavailable'].includes(ip.state)?' · WAN IP '+esc(ip.state):' · 192.168.1.1'}${upt&&!isNaN(+upt.state)?' · up '+(+upt.state>=86400?Math.floor(upt.state/86400)+'d ':'')+Math.floor(upt.state%86400/3600)+'h':''}</div></div><span class="mbtn ${online?'on':''}" style="pointer-events:none">${online==null?'…':online?'✓':'!'}</span></div>`;
   h+=`<button class="primary" style="width:100%;margin-bottom:12px" data-router>Open router settings (LuCI)</button>
   <div class="netgrid">
     ${upnpLive?card('Download now',dl?fmtRate(dl.state,A(dl,'unit_of_measurement')):'—',pdl?Math.round(+pdl.state||0)+' packets/s':''):''}
@@ -1374,7 +1412,56 @@ async function haLive(){
     else{ind.classList.remove('show');ind.style.transform=''}});
 })();
 
-$('note').addEventListener('click',()=>{if(!HA.live)$('gearBtn').click()});
+$('note').addEventListener('click',()=>{if(S.ha.use&&!HA.live)$('gearBtn').click()});
+// ---------- Sony Blu-ray (via Home Assistant rest_command) ----------
+// IRCC codes for the UBP-X1000ES, read from the player's own command list.
+var BD_CODES={"Confirm":"AAAAAwAAHFoAAAA9Aw==","Up":"AAAAAwAAHFoAAAA5Aw==","Down":"AAAAAwAAHFoAAAA6Aw==","Right":"AAAAAwAAHFoAAAA8Aw==","Left":"AAAAAwAAHFoAAAA7Aw==","Home":"AAAAAwAAHFoAAABCAw==","Options":"AAAAAwAAHFoAAAA/Aw==","Return":"AAAAAwAAHFoAAABDAw==","Power":"AAAAAwAAHFoAAAAVAw==","Display":"AAAAAwAAHFoAAABBAw==","Audio":"AAAAAwAAHFoAAABkAw==","SubTitle":"AAAAAwAAHFoAAABjAw==","Play":"AAAAAwAAHFoAAAAaAw==","Stop":"AAAAAwAAHFoAAAAYAw==","Pause":"AAAAAwAAHFoAAAAZAw==","Rewind":"AAAAAwAAHFoAAAAbAw==","Forward":"AAAAAwAAHFoAAAAcAw==","Prev":"AAAAAwAAHFoAAABXAw==","Next":"AAAAAwAAHFoAAABWAw==","Replay":"AAAAAwAAHFoAAAB2Aw==","Advance":"AAAAAwAAHFoAAAB1Aw==","TopMenu":"AAAAAwAAHFoAAAAsAw==","PopUpMenu":"AAAAAwAAHFoAAAApAw==","Eject":"AAAAAwAAHFoAAAAWAw==","Netflix":"AAAAAwAAHFoAAABLAw=="};
+var BD={has:null,state:null,power:null,at:0};
+async function bdApi(service,method,params='[]',version='1.0'){
+  const r=await fetch(base()+'/api/services/rest_command/sony_bluray_api?return_response',{method:'POST',headers:{Authorization:'Bearer '+S.ha.token,'Content-Type':'application/json'},body:JSON.stringify({service,method,params,version})});
+  if(!r.ok)throw new Error('HA '+r.status);const j=await r.json();return j.service_response?.content||j.response?.content||j;
+}
+async function bdStatus(){
+  if(!HA.live)return;
+  if(BD.has==null){try{const sv=await haFetch('/api/services');BD.has=sv.some(d=>d.domain==='rest_command'&&d.services&&d.services.sony_bluray_ircc)}catch(e){BD.has=false}}
+  if(!BD.has||Date.now()-BD.at<8000)return;BD.at=Date.now();
+  try{const p=await bdApi('system','getPowerStatus','[]','1.1');BD.power=p.result?.[0]?.status||null}catch(e){BD.power='unreachable'}
+  if(BD.power==='active'){try{const c=await bdApi('avContent','getPlayingContentInfo','[{}]','1.2');const i=c.result?.[0]?.[0];BD.state=i?{src:i.source||'',st:i.stateInfo?.state||''}:null}catch(e){BD.state=null}}else BD.state=null;
+  renderBD();
+}
+function bdLabel(){
+  if(BD.power==='unreachable')return 'Not responding — is it plugged in and on the network?';
+  if(BD.power&&BD.power!=='active')return 'Standby';
+  const s=BD.state;if(!s)return 'On';
+  const src=/storage:cd|disc/.test(s.src)?'Disc':/usb/.test(s.src)?'USB':s.src.replace(/^[a-z]+:/,'')||'Player';
+  return src+' · '+({PLAYING:'Playing',PAUSED:'Paused',STOPPED:'Stopped'}[s.st]||s.st.toLowerCase()||'On');
+}
+function renderBD(){
+  const box=$('bdCard');if(!box)return;
+  if(!HA.live||!BD.has||S.view!=='media'){box.innerHTML='';return}
+  const on=BD.power==='active';
+  box.innerHTML=`<div class="mcard"><div class="mtop"><div class="mart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg></div>
+    <div class="minfo"><b>Blu-ray player</b><span>${esc(bdLabel())}</span></div>
+    <button class="mbtn" data-bdcard="remote" aria-label="Remote">${IC.remote}</button>
+    <button class="mbtn ${on?'on':''}" data-bdcard="power" aria-label="Power">${IC.power}</button></div>
+    ${on?`<div class="mrow"><button class="mbtn" data-bdcard="Prev">${IC.prev}</button><button class="mbtn big" data-bdcard="${BD.state?.st==='PLAYING'?'Pause':'Play'}">${BD.state?.st==='PLAYING'?IC.pause:IC.play}</button><button class="mbtn" data-bdcard="Next">${IC.next}</button></div>`:''}</div>`;
+  $('bdMeta').textContent=bdLabel();
+}
+async function bdSend(name){
+  buzz();
+  if(name==='power'){
+    const on=BD.power==='active';
+    try{await bdApi('system','setPowerStatus',JSON.stringify([{status:on?'off':'active'}]),'1.1');BD.power=on?'standby':'active';renderBD();BD.at=0;setTimeout(bdStatus,3000)}
+    catch(e){toast("Couldn't reach the Blu-ray player")}return;
+  }
+  const code=BD_CODES[name];if(!code){toast('That button isn\'t set up yet');return}
+  try{const r=await haFetch('/api/services/rest_command/sony_bluray_ircc',{code});BD.at=0;setTimeout(bdStatus,1200)}catch(e){toast("Blu-ray player didn't respond")}
+}
+$('bdCard').addEventListener('click',e=>{const b=e.target.closest('[data-bdcard]');if(!b)return;const k=b.dataset.bdcard;
+  if(k==='remote'){$('bdMeta').textContent=bdLabel();$('bdSh').classList.add('open');$('backdrop').classList.add('open');return}bdSend(k)});
+$('bdSh').addEventListener('click',e=>{const b=e.target.closest('[data-bd]');if(b)bdSend(b.dataset.bd)});
+setInterval(()=>{if(S.view==='media'||$('bdSh').classList.contains('open'))bdStatus()},5000);
+
 window.lumenBack=()=>{if(document.querySelector('.sheet.open')){closeAll();return true}return false};;$('connClose').onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('gearBtn').onclick=()=>{$('haUrl').value=S.ha.url||(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?location.origin:(location.protocol==='file:'?'http://192.168.1.104':''));$('haToken').value=S.ha.token||'';$('conn').classList.add('open');$('backdrop').classList.add('open')};
