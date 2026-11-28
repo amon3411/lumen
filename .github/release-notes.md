@@ -1,7 +1,7 @@
-**Vesta 1.9.0 — Blu-ray remote**
+**Vesta 1.9.1 — 4:3 for the VCR**
 
-- **Sony Blu-ray player** in the Media tab: shows what it's doing (Disc · Playing, Paused, Standby) with power, play/pause and chapter skip.
-- **Full remote:** disc menu, pop-up menu, options, arrow pad with OK, Back, Home, info, rewind, fast-forward, pause, stop, eject, subtitles and audio track.
-- **Router:** the Network tab shows how long your OpenWrt router has been up, and hides the placeholder 0.0.0.0 internet address.
+- **4:3 / Wide button** in the TV remote: sends the TV's zoom key to cycle the picture size, so VCR tapes on the AV (RCA) input aren't stretched.
+- **Picture settings button** opens the TV's settings as a backup (Picture → Picture size → 4:3).
+- The TV remote now shows the TV's make and model from Home Assistant.
 
-Works on Android and the iPhone web app — commands go through Home Assistant. Includes everything from 1.8.0 (faster rendering, instant startup, clearer tabs).
+Includes everything from 1.9.0.

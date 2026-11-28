@@ -490,6 +490,11 @@
     <button class="mbtn" data-rc="mute" aria-label="Mute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6"/></svg></button>
     <button class="mbtn" data-rc="volup" aria-label="Volume up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4zM16 12h6M19 9v6"/></svg></button>
   </div>
+  <h2>Picture</h2>
+  <div class="apps">
+    <button class="ghost" data-rc="aspect">4:3 / Wide</button>
+    <button class="ghost" data-key="SETTINGS">Picture settings</button>
+  </div>
   <h2>Apps</h2>
   <div class="apps">
     <button class="ghost" data-app="https://www.youtube.com">YouTube</button>
@@ -1049,6 +1054,20 @@ function openTV(d){
   MP.tv=d;$('tvName').textContent=d.n;
   const ia=d.info.attributes;$('tvMeta').textContent=d.remote?(ia.media_title||ia.app_name||(d.remote.state==='unavailable'?'Unavailable — check the TV is on the network':'')):'This TV has no remote in Home Assistant, so only volume and power work.';
   $('tvSh').classList.add('open');$('backdrop').classList.add('open');
+  tvModel(d);
+}
+// Look up the TV's make and model from Home Assistant's device registry
+async function tvModel(d){
+  const id=(d.remote||d.s).entity_id;
+  if(d.model==null){try{d.model=(await haFetch('/api/template',{template:`{{ [device_attr('${id}','manufacturer') or '', device_attr('${id}','model') or ''] | join(' ') | trim }}`},true)).trim()}catch(e){d.model=''}}
+  if(d.model&&MP.tv===d)$('tvName').textContent=d.n+' · '+d.model;
+}
+// 4:3 for the VCR: Android TV's zoom key cycles the picture size (Normal 4:3 → Zoom → Wide…)
+async function tvAspect(d){
+  if(!d.remote)return toast('No remote for this TV');
+  HA.lastLocal=Date.now();
+  try{await haFetch('/api/services/remote/send_command',{entity_id:d.remote.entity_id,command:'TV_ZOOM_MODE'});toast('Picture size changed — tap again to cycle')}
+  catch(e){toast('TV ignored the zoom key — use Picture settings → Picture size → 4:3')}
 }
 $('tvSh').addEventListener('click',e=>{
   tvFresh();const d=MP.tv;if(!d)return;const b=e.target.closest('[data-key],[data-rc],[data-app]');if(!b)return;
@@ -1056,7 +1075,8 @@ $('tvSh').addEventListener('click',e=>{
   if(b.dataset.key){if(d.remote)mpCall('send_command',d.remote.entity_id,{command:b.dataset.key},'remote');else toast('No remote for this TV');return}
   if(b.dataset.app){if(d.remote)mpCall('turn_on',d.remote.entity_id,{activity:b.dataset.app},'remote');return}
   const id=d.s.entity_id,off=['off','standby','unavailable'].includes(d.s.state);
-  ({power:()=>d.remote?mpCall(off?'turn_on':'turn_off',d.remote.entity_id,{},'remote'):mpCall(off?'turn_on':'turn_off',id),
+  ({aspect:()=>tvAspect(d),
+    power:()=>d.remote?mpCall(off?'turn_on':'turn_off',d.remote.entity_id,{},'remote'):mpCall(off?'turn_on':'turn_off',id),
     volup:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_UP'},'remote'):mpCall('volume_up',id),
     voldown:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_DOWN'},'remote'):mpCall('volume_down',id),
     mute:()=>d.remote?mpCall('send_command',d.remote.entity_id,{command:'VOLUME_MUTE'},'remote'):mpCall('volume_mute',id,{is_volume_muted:!d.s.attributes.is_volume_muted})})[b.dataset.rc]?.();
