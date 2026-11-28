@@ -594,10 +594,22 @@ async function send(l){
   }
 }
 function setStatus(cls,txt){$('pill').className='pill '+cls;$('pill').querySelector('span').textContent=txt}
+// If Home Assistant moved (new router, new IP), look for it at its other known addresses.
+const HA_CANDIDATES=['http://192.168.1.104','http://thehousebutler.local','http://homeassistant.local','http://homeassistant.local:8123'];
+async function findHA(){
+  const tried=S.ha.url.replace(/\/$/,'').toLowerCase();
+  const list=[...(location.protocol.startsWith('http')&&!/claude/.test(location.hostname)?[location.origin]:[]),...HA_CANDIDATES].filter(u=>u.toLowerCase()!==tried);
+  for(const u of list){
+    try{const c=new AbortController(),t=setTimeout(()=>c.abort(),3000);
+      const r=await fetch(u+'/api/',{headers:{Authorization:'Bearer '+S.ha.token},signal:c.signal});clearTimeout(t);
+      if(r.ok){S.ha.url=u;save();return u}}catch(e){}
+  }
+  return null;
+}
 async function connect(quiet){
   $('haMsg').className='msg';$('haMsg').textContent='Connecting…';
   try{
-    await haFetch('/api/');await loadMeta();HA.live=true;HA.lights=[];await pull();
+    try{await haFetch('/api/')}catch(e){if(!(e&&e.name==='TypeError'&&S.ha.token&&await findHA()))throw e;toast('Found Home Assistant at its new address');await haFetch('/api/')}await loadMeta();HA.live=true;HA.lights=[];await pull();
     S.ha.use=true;S.room='All';S.scene=null;save();
     $('haMsg').className='msg ok';$('haMsg').textContent=`Connected — found ${HA.lights.length} device${HA.lights.length===1?'':'s'}${HA.lights.length?'':'. Add lights with the + button'}.`;
     setStatus('live','Home Assistant');
